@@ -1,0 +1,6 @@
+@tailwind base;@tailwind components;@tailwind utilities;
+body{@apply bg-[#f4f6fb] text-slate-800 antialiased;padding-top:env(safe-area-inset-top)}
+.card{@apply bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,.04),0_8px_24px_-12px_rgba(15,23,42,.08)]}
+.inp{@apply w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent/10}
+.btn{@apply inline-flex items-center justify-center gap-2 rounded-xl bg-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-navy-700 active:scale-[.98] transition disabled:opacity-50}
+.lbl{@apply mb-1 block text-xs font-semibold text-slate-500}
