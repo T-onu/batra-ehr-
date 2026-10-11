@@ -19,9 +19,9 @@ begin perform pg_advisory_xact_lock(hashtext('visit_no'));
 create trigger trg_visit_no before insert on visits for each row execute function set_visit_no();
 
 -- auto profile on signup
-create function handle_new_user() returns trigger language plpgsql security definer as $$
-begin insert into profiles(id,name) values(new.id,coalesce(new.raw_user_meta_data->>'name',new.email)); return new; end $$;
-create trigger on_signup after insert on auth.users for each row execute function handle_new_user();
+create function public.handle_new_user() returns trigger language plpgsql security definer set search_path = public as $$
+begin insert into public.profiles(id,name) values(new.id,coalesce(new.raw_user_meta_data->>'name',new.email)); return new; end $$;
+create trigger on_signup after insert on auth.users for each row execute function public.handle_new_user();
 
 -- RLS: logged-in staff only (role-wise rights agle step me tighten karenge)
 alter table profiles enable row level security; alter table patients enable row level security; alter table visits enable row level security;

@@ -4,3 +4,4 @@ body{@apply bg-[#f4f6fb] text-slate-800 antialiased;padding-top:env(safe-area-in
 .inp{@apply w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent/10}
 .btn{@apply inline-flex items-center justify-center gap-2 rounded-xl bg-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-navy-700 active:scale-[.98] transition disabled:opacity-50}
 .lbl{@apply mb-1 block text-xs font-semibold text-slate-500}
+@media print{body *{visibility:hidden}.print-area,.print-area *{visibility:visible}.print-area{position:absolute;left:0;top:0;width:100%;box-shadow:none!important;border:0!important}.no-print{display:none!important}}
