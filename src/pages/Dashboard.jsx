@@ -9,12 +9,13 @@ export default function Dashboard(){
     const p=await supabase.from('patients').select('*',{count:'exact',head:true})
     const v=await supabase.from('visits').select('*, patients(name,uhid)').eq('visit_date',today()).order('created_at',{ascending:false})
     const d=v.data||[]; setRows(d)
-    setS({patients:p.count??0,opd:d.filter(x=>x.kind==='OPD').length,ipd:d.filter(x=>x.kind==='IPD').length,cash:inr(d.reduce((a,x)=>a+Number(x.paid||0),0))})})()},[])
+    const a=await supabase.from('admissions').select('*',{count:'exact',head:true}).eq('status','Admitted')
+    setS({patients:p.count??0,opd:d.filter(x=>x.kind==='OPD').length,ipd:a.count??0,cash:inr(d.reduce((a,x)=>a+Number(x.paid||0),0))})})()},[])
   return <div className="space-y-6">
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       <Stat I={Users} label="Total patients" value={s.patients} tone="bg-blue-50 text-accent"/>
       <Stat I={Stethoscope} label="Today OPD" value={s.opd} tone="bg-emerald-50 text-emerald-600"/>
-      <Stat I={BedDouble} label="Today IPD" value={s.ipd} tone="bg-amber-50 text-amber-600"/>
+      <Stat I={BedDouble} label="IPD admitted now" value={s.ipd} tone="bg-amber-50 text-amber-600"/>
       <Stat I={IndianRupee} label="Today collection" value={s.cash} tone="bg-violet-50 text-violet-600"/></div>
     <div className="card overflow-hidden"><div className="border-b border-slate-100 px-5 py-4 font-bold text-navy">Today's visits</div>
       <div className="divide-y divide-slate-100">{rows.length===0&&<p className="p-8 text-center text-sm text-slate-400">Aaj abhi koi visit nahi.</p>}

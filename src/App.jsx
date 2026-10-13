@@ -6,12 +6,13 @@ import Patients from './pages/Patients'
 import Queue from './pages/Queue'
 import Clinical from './pages/Clinical'
 import Billing from './pages/Billing'
+import Ipd from './pages/Ipd'
 import Appointments from './pages/Appointments'
 import { can } from './lib/roles'
 
 const NAV=[['dashboard',LayoutDashboard,'Dashboard',Dashboard],['patients',Users,'Patients & OPD',Patients],
 ['appointments',CalendarClock,'Appointments',Appointments],['queue',ListOrdered,'OPD Queue',Queue],['clinical',Stethoscope,'Clinical Exam',Clinical],
-['diagnostics',ScanEye,'Investigations'],['ipd',BedDouble,'Admissions'],['discharge',FileCheck2,'Discharge Card'],
+['diagnostics',ScanEye,'Investigations'],['ipd',BedDouble,'Admissions',Ipd],['discharge',FileCheck2,'Discharge Card'],
 ['billing',ReceiptIndianRupee,'Billing',Billing],['pharmacy',Pill,'Pharmacy'],['optical',Glasses,'Optical'],['audit',ShieldCheck,'Audit']]
 
 function Logo({size=40}){return <img src="/logo.png" width={size} height={size} className="rounded-full bg-white" alt="Batra Eye"/>}
