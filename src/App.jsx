@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { LayoutDashboard, Users, CalendarClock, ListOrdered, Stethoscope, ScanEye, BedDouble, FileCheck2, ReceiptIndianRupee, Pill, Glasses, ShieldCheck, LogOut, Construction } from 'lucide-react'
+import { LayoutDashboard, Users, CalendarClock, ListOrdered, Stethoscope, ScanEye, BedDouble, FileCheck2, ReceiptIndianRupee, Pill, Glasses, ShieldCheck, BarChart3, LogOut, Construction } from 'lucide-react'
 import { supabase, configured } from './lib/supabase'
 import Dashboard from './pages/Dashboard'
 import Patients from './pages/Patients'
@@ -7,13 +7,15 @@ import Queue from './pages/Queue'
 import Clinical from './pages/Clinical'
 import Billing from './pages/Billing'
 import Ipd from './pages/Ipd'
+import Discharge from './pages/Discharge'
+import Reports from './pages/Reports'
 import Appointments from './pages/Appointments'
 import { can } from './lib/roles'
 
 const NAV=[['dashboard',LayoutDashboard,'Dashboard',Dashboard],['patients',Users,'Patients & OPD',Patients],
 ['appointments',CalendarClock,'Appointments',Appointments],['queue',ListOrdered,'OPD Queue',Queue],['clinical',Stethoscope,'Clinical Exam',Clinical],
-['diagnostics',ScanEye,'Investigations'],['ipd',BedDouble,'Admissions',Ipd],['discharge',FileCheck2,'Discharge Card'],
-['billing',ReceiptIndianRupee,'Billing',Billing],['pharmacy',Pill,'Pharmacy'],['optical',Glasses,'Optical'],['audit',ShieldCheck,'Audit']]
+['diagnostics',ScanEye,'Investigations'],['ipd',BedDouble,'Admissions',Ipd],['discharge',FileCheck2,'Discharge Card',Discharge],
+['billing',ReceiptIndianRupee,'Billing',Billing],['pharmacy',Pill,'Pharmacy'],['optical',Glasses,'Optical'],['reports',BarChart3,'Reports',Reports],['audit',ShieldCheck,'Audit']]
 
 function Logo({size=40}){return <img src="/logo.png" width={size} height={size} className="rounded-full bg-white" alt="Batra Eye"/>}
 

@@ -9,8 +9,9 @@ export default function Dashboard(){
     const p=await supabase.from('patients').select('*',{count:'exact',head:true})
     const v=await supabase.from('visits').select('*, patients(name,uhid)').eq('visit_date',today()).order('created_at',{ascending:false})
     const d=v.data||[]; setRows(d)
+    const st=new Date();st.setHours(0,0,0,0);const pay=await supabase.from('payments').select('amount').gte('created_at',st.toISOString())
     const a=await supabase.from('admissions').select('*',{count:'exact',head:true}).eq('status','Admitted')
-    setS({patients:p.count??0,opd:d.filter(x=>x.kind==='OPD').length,ipd:a.count??0,cash:inr(d.reduce((a,x)=>a+Number(x.paid||0),0))})})()},[])
+    setS({patients:p.count??0,opd:d.filter(x=>x.kind==='OPD').length,ipd:a.count??0,cash:inr((pay.data||[]).reduce((a,x)=>a+Number(x.amount),0))})})()},[])
   return <div className="space-y-6">
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       <Stat I={Users} label="Total patients" value={s.patients} tone="bg-blue-50 text-accent"/>
@@ -20,5 +21,5 @@ export default function Dashboard(){
     <div className="card overflow-hidden"><div className="border-b border-slate-100 px-5 py-4 font-bold text-navy">Today's visits</div>
       <div className="divide-y divide-slate-100">{rows.length===0&&<p className="p-8 text-center text-sm text-slate-400">Aaj abhi koi visit nahi.</p>}
         {rows.map(r=><div key={r.id} className="flex items-center justify-between px-5 py-3 text-sm"><div><b>{r.patients?.name}</b><div className="text-xs text-slate-400">{r.patients?.uhid} · {r.visit_no}</div></div>
-          <div className="text-right"><span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${r.kind==='OPD'?'bg-emerald-50 text-emerald-700':'bg-amber-50 text-amber-700'}`}>{r.kind}</span><div className="mt-0.5 text-xs text-slate-500">{inr(r.paid)}</div></div></div>)}</div></div></div>
+          <div className="text-right"><span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${r.kind==='OPD'?'bg-emerald-50 text-emerald-700':'bg-amber-50 text-amber-700'}`}>{r.kind}</span><div className="mt-0.5 text-xs text-slate-500">{r.status}</div></div></div>)}</div></div></div>
 }

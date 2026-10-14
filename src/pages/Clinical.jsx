@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Eye, Save, History } from 'lucide-react'
 import { supabase, today } from '../lib/supabase'
+import PrintSheet from '../components/PrintSheet'
 const eye=()=>({od:'',os:''})
 const blank=()=>({complaints:'',diagnosis:'',pastHistory:'',systemic:'',
   vision:{dist:eye(),near:eye()},refraction:{od:{sph:'',cyl:'',axis:'',add:''},os:{sph:'',cyl:'',axis:'',add:''}},iop:eye(),
@@ -8,7 +9,7 @@ const blank=()=>({complaints:'',diagnosis:'',pastHistory:'',systemic:'',
 const INV=['OCT','Fundus photo','Visual field','Topography','Pachymetry','Biometry (IOL)','A-Scan','B-Scan','FFA','NCT','Blood sugar']
 const SLIT=[['lids','Lids'],['conj','Conjunctiva'],['cornea','Cornea'],['ac','Anterior chamber'],['iris','Iris'],['pupil','Pupil'],['lens','Lens']]
 export default function Clinical({profile}){
-  const [q,setQ]=useState([]),[sel,setSel]=useState(null),[f,setF]=useState(blank()),[hist,setHist]=useState([]),[doc,setDoc]=useState(profile?.name||''),[msg,setMsg]=useState('')
+  const [q,setQ]=useState([]),[sel,setSel]=useState(null),[f,setF]=useState(blank()),[hist,setHist]=useState([]),[doc,setDoc]=useState(profile?.name||''),[msg,setMsg]=useState(''),[rx,setRx]=useState(false)
   const canEdit=['Doctor','Admin','Super Admin'].includes(profile?.role)
   const loadQ=async()=>{const {data}=await supabase.from('visits').select('*, patients(id,name,age,sex,phone,uhid)').eq('visit_date',today()).eq('kind','OPD').neq('status','Cancelled').order('token');setQ(data||[])}
   useEffect(()=>{loadQ();const ch=supabase.channel('clin').on('postgres_changes',{event:'*',schema:'public',table:'visits'},loadQ).subscribe();return()=>supabase.removeChannel(ch)},[])
@@ -49,5 +50,13 @@ export default function Clinical({profile}){
       <Sec t="Treatment & advice">{T('Treatment / prescription',['treatment'],4)}{T('Advice',['advice'],2)}<div><label className="lbl">Follow-up</label><input className="inp" placeholder="e.g. 1 week" disabled={!canEdit} value={f.followup} onChange={e=>put(['followup'],e.target.value)}/></div></Sec></div>
     {hist.length>0&&<Sec t="Pichhli visits"><div className="space-y-2">{hist.map(h=><div key={h.id} className="rounded-xl bg-slate-50 p-3 text-xs"><b className="flex items-center gap-1 text-navy"><History size={12}/>{h.visits?.visit_date} · {h.visits?.visit_no}</b><div className="mt-1 text-slate-600">Dx: {h.data.diagnosis||'—'} · Rx: {h.data.treatment||'—'}</div></div>)}</div></Sec>}
     {canEdit&&<div className="sticky bottom-20 flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/90 p-3 backdrop-blur md:bottom-4"><input className="inp max-w-[220px]" placeholder="Doctor name" value={doc} onChange={e=>setDoc(e.target.value)}/>
-      <span className="flex-1 text-xs font-medium text-emerald-600">{msg}</span><button className="btn" onClick={save}><Save size={16}/>Save exam</button></div>}</div>
+      <span className="flex-1 text-xs font-medium text-emerald-600">{msg}</span><button className="btn !bg-emerald-600" onClick={()=>setRx(true)}>Print Rx</button><button className="btn" onClick={save}><Save size={16}/>Save exam</button></div>}
+    {rx&&<PrintSheet title="PRESCRIPTION" meta={[sel.visit_no,new Date().toLocaleDateString('en-GB')]} onClose={()=>setRx(false)}>
+      <div className="grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-3 text-xs"><div>Patient: <b>{sel.patients.name}</b></div><div>Age / Sex: <b>{sel.patients.age||'—'} / {sel.patients.sex||'—'}</b></div><div>UHID: <b>{sel.patients.uhid}</b></div></div>
+      {f.complaints&&<p className="text-xs"><b className="text-navy">Complaints:</b> {f.complaints}</p>}{f.diagnosis&&<p className="text-xs"><b className="text-navy">Diagnosis:</b> {f.diagnosis}</p>}
+      <table className="w-full text-center text-xs"><thead><tr className="border-y bg-slate-50"><th/><th>Dist VA</th><th>Near VA</th><th>IOP</th><th>Sph</th><th>Cyl</th><th>Axis</th><th>Add</th></tr></thead><tbody>
+        {['od','os'].map(e=><tr key={e} className="border-b border-slate-100"><td className="p-1.5 font-bold uppercase">{e}</td><td>{f.vision.dist[e]}</td><td>{f.vision.near[e]}</td><td>{f.iop[e]}</td><td>{f.refraction[e].sph}</td><td>{f.refraction[e].cyl}</td><td>{f.refraction[e].axis}</td><td>{f.refraction[e].add}</td></tr>)}</tbody></table>
+      {f.treatment&&<div><b className="text-lg text-navy">Rx</b><p className="whitespace-pre-line text-sm">{f.treatment}</p></div>}{f.advice&&<p className="text-xs"><b className="text-navy">Advice:</b> {f.advice}</p>}{f.followup&&<p className="text-xs"><b className="text-navy">Follow-up:</b> {f.followup}</p>}
+      <div className="flex justify-end pt-10 text-xs"><span className="border-t border-slate-400 px-6 pt-1">{doc||'Doctor'}</span></div></PrintSheet>}
+  </div>
 }

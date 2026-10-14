@@ -3,6 +3,6 @@ const ALL='*'
 export const ACCESS={ 'Super Admin':ALL, Admin:ALL,
   Doctor:['dashboard','patients','queue','clinical','diagnostics','ipd','discharge'],
   Reception:['dashboard','patients','appointments','queue','billing'],
-  Billing:['dashboard','patients','billing','ipd','discharge'],
+  Billing:['dashboard','patients','billing','ipd','discharge','reports'],
   Pharmacy:['dashboard','pharmacy'], Optical:['dashboard','optical'] }
 export const can=(role,page)=>{const a=ACCESS[role]||ACCESS.Reception;return a===ALL||a.includes(page)}

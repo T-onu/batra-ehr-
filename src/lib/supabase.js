@@ -3,4 +3,4 @@ const url=import.meta.env.VITE_SUPABASE_URL, key=import.meta.env.VITE_SUPABASE_A
 export const configured=Boolean(url&&key)
 export const supabase=configured?createClient(url,key):null
 export const inr=n=>'₹'+Number(n||0).toLocaleString('en-IN')
-export const today=()=>new Date().toISOString().slice(0,10)
+export const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
