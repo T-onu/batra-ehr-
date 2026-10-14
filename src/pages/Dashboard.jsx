@@ -4,15 +4,17 @@ import { supabase, inr, today } from '../lib/supabase'
 const Stat=({I,label,value,tone})=><div className="card flex items-center gap-4 p-5"><div className={`grid h-12 w-12 place-items-center rounded-2xl ${tone}`}><I size={22}/></div>
   <div><div className="text-2xl font-extrabold text-navy">{value}</div><div className="text-xs font-medium text-slate-500">{label}</div></div></div>
 export default function Dashboard(){
-  const [s,setS]=useState({patients:'–',opd:'–',ipd:'–',cash:'–'}),[rows,setRows]=useState([])
+  const [s,setS]=useState({patients:'–',opd:'–',ipd:'–',cash:'–'}),[rows,setRows]=useState([]),[exp,setExp]=useState(0)
   useEffect(()=>{(async()=>{
     const p=await supabase.from('patients').select('*',{count:'exact',head:true})
     const v=await supabase.from('visits').select('*, patients(name,uhid)').eq('visit_date',today()).order('created_at',{ascending:false})
     const d=v.data||[]; setRows(d)
     const st=new Date();st.setHours(0,0,0,0);const pay=await supabase.from('payments').select('amount').gte('created_at',st.toISOString())
+    const d60=new Date();d60.setDate(d60.getDate()+60);const ex=await supabase.from('stock_items').select('*',{count:'exact',head:true}).eq('module','pharmacy').gt('qty_on_hand',0).lte('expiry',d60.toLocaleDateString('en-CA'));setExp(ex.count??0)
     const a=await supabase.from('admissions').select('*',{count:'exact',head:true}).eq('status','Admitted')
     setS({patients:p.count??0,opd:d.filter(x=>x.kind==='OPD').length,ipd:a.count??0,cash:inr((pay.data||[]).reduce((a,x)=>a+Number(x.amount),0))})})()},[])
   return <div className="space-y-6">
+    {exp>0&&<div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-semibold text-amber-800">⚠ {exp} pharmacy batch expire ho chuke ya 60 din me expire honge — Pharmacy → Stock dekho.</div>}
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       <Stat I={Users} label="Total patients" value={s.patients} tone="bg-blue-50 text-accent"/>
       <Stat I={Stethoscope} label="Today OPD" value={s.opd} tone="bg-emerald-50 text-emerald-600"/>
