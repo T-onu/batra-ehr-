@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { LayoutDashboard, Users, CalendarClock, ListOrdered, Stethoscope, ScanEye, BedDouble, FileCheck2, ReceiptIndianRupee, Pill, Glasses, ShieldCheck, BarChart3, UserCog, KeyRound, LogOut, Construction } from 'lucide-react'
+import { LayoutDashboard, Users, CalendarClock, ListOrdered, Stethoscope, ScanEye, FolderOpen, BedDouble, FileCheck2, ReceiptIndianRupee, Pill, Glasses, ShieldCheck, BarChart3, UserCog, KeyRound, LogOut, Construction } from 'lucide-react'
 import { supabase, configured } from './lib/supabase'
 import Dashboard from './pages/Dashboard'
 import Patients from './pages/Patients'
@@ -11,6 +11,8 @@ import Discharge from './pages/Discharge'
 import Reports from './pages/Reports'
 import StaffRoles from './pages/StaffRoles'
 import Audit from './pages/Audit'
+import Investigations from './pages/Investigations'
+import Documents from './pages/Documents'
 import { Pharmacy, Optical } from './pages/Inventory'
 import PasswordForm from './components/PasswordForm'
 import Appointments from './pages/Appointments'
@@ -18,7 +20,7 @@ import { can } from './lib/roles'
 
 const NAV=[['dashboard',LayoutDashboard,'Dashboard',Dashboard],['patients',Users,'Patients & OPD',Patients],
 ['appointments',CalendarClock,'Appointments',Appointments],['queue',ListOrdered,'OPD Queue',Queue],['clinical',Stethoscope,'Clinical Exam',Clinical],
-['diagnostics',ScanEye,'Investigations'],['ipd',BedDouble,'Admissions',Ipd],['discharge',FileCheck2,'Discharge Card',Discharge],
+['diagnostics',ScanEye,'Investigations',Investigations],['documents',FolderOpen,'Documents',Documents],['ipd',BedDouble,'Admissions',Ipd],['discharge',FileCheck2,'Discharge Card',Discharge],
 ['billing',ReceiptIndianRupee,'Billing',Billing],['pharmacy',Pill,'Pharmacy',Pharmacy],['optical',Glasses,'Optical',Optical],['reports',BarChart3,'Reports',Reports],['users',UserCog,'Staff & Roles',StaffRoles],['audit',ShieldCheck,'Audit Log',Audit]]
 
 function Logo({size=40}){return <img src="/logo.png" width={size} height={size} className="rounded-full bg-white" alt="Batra Eye"/>}

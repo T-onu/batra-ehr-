@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase, today } from '../lib/supabase'
-const TABLES=['all','patients','visits','appointments','exams','bills','payments','admissions','discharge_summaries','beds','profiles']
+const TABLES=['all','patients','visits','appointments','exams','bills','payments','admissions','discharge_summaries','beds','profiles','stock_items','stock_moves','credit_notes','investigations','documents','catalog_items']
 const ago=n=>{const d=new Date();d.setDate(d.getDate()-n);return d.toLocaleDateString('en-CA')}
 const cut=v=>{const s=typeof v==='object'&&v!==null?JSON.stringify(v):String(v??'—');return s.length>34?s.slice(0,34)+'…':s}
 const label=c=>c.name||c.bill_no||c.adm_no||c.visit_no||c.uhid||c.procedure||c.bed_no||c.amount&&'₹'+c.amount||''
