@@ -1,4 +1,4 @@
--- Step 3 · Clinical Exam (schema.sql, schema_02 ke baad run karo)
+-- Step 3 · Clinical Exam (run after schema.sql and schema_02)
 create or replace function my_role() returns text language sql security definer stable as $$ select role from profiles where id=auth.uid() $$;
 create table exams(id uuid primary key default gen_random_uuid(), visit_id uuid not null unique references visits on delete cascade,
   patient_id uuid not null references patients on delete cascade, doctor text, data jsonb not null default '{}',

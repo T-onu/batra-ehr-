@@ -1,4 +1,4 @@
--- Step 8 · Staff management + Audit log (pehli 7 SQL files ke baad run karo)
+-- Step 8 · Staff management + Audit log (run after the first 7 SQL files)
 alter table profiles add column email text, add column active boolean not null default true;
 insert into profiles(id,name) select id,email from auth.users on conflict do nothing;
 update profiles p set email=u.email from auth.users u where u.id=p.id;
@@ -12,7 +12,7 @@ create or replace function public.is_admin() returns boolean language sql securi
 create or replace function public.is_active() returns boolean language sql security definer stable set search_path=public as $$
   select coalesce((select active from profiles where id=auth.uid()),false) $$;
 
--- disabled / profile-less user ko koi bhi table nahi dikhegi (profiles chhodkar)
+-- a disabled or profile-less user cannot read any table (except profiles)
 do $$ declare t text; begin
   foreach t in array array['patients','visits','appointments','exams','bills','payments','beds','admissions','discharge_summaries'] loop
     execute format('create policy "active only" on %I as restrictive for all to authenticated using (public.is_active()) with check (public.is_active())',t);
@@ -23,11 +23,11 @@ begin
   if auth.uid() is null or tg_op<>'UPDATE' then return new; end if;
   if old.role='Super Admin' and (new.role<>'Super Admin' or not new.active)
      and not exists(select 1 from profiles where role='Super Admin' and active and id<>old.id)
-  then raise exception 'Aakhri Super Admin ko hata ya disable nahi kar sakte'; end if;
+  then raise exception 'The last Super Admin cannot be removed or disabled'; end if;
   if (new.role='Super Admin' or old.role='Super Admin') and (new.role is distinct from old.role or new.active is distinct from old.active)
-     and public.my_role() is distinct from 'Super Admin' then raise exception 'Sirf Super Admin ye badlav kar sakta hai'; end if;
+     and public.my_role() is distinct from 'Super Admin' then raise exception 'Only a Super Admin can make this change'; end if;
   if new.id=auth.uid() and (new.role is distinct from old.role or new.active is distinct from old.active)
-  then raise exception 'Apna role ya status khud nahi badal sakte'; end if;
+  then raise exception 'You cannot change your own role or status'; end if;
   return new; end $$;
 create trigger trg_profile_guard before update on profiles for each row execute function public.profile_guard();
 

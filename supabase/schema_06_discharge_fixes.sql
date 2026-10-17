@@ -1,5 +1,5 @@
--- Step 6 · Discharge Card + India timezone fix (pehli 5 SQL files ke baad run karo)
-alter database postgres set timezone to 'Asia/Kolkata';   -- raat 12 se subah 5:30 ke beech date galat na aaye
+-- Step 6 · Discharge Card + India timezone fix (run after the first 5 SQL files)
+alter database postgres set timezone to 'Asia/Kolkata';   -- keeps dates correct between midnight and 5:30 AM IST
 create table discharge_summaries(id uuid primary key default gen_random_uuid(), admission_id uuid not null unique references admissions on delete cascade,
   patient_id uuid not null references patients on delete cascade, doctor text, data jsonb not null default '{}',
   created_by uuid default auth.uid(), updated_at timestamptz default now());

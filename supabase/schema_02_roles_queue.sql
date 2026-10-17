@@ -1,4 +1,4 @@
--- Step 2 · roles, appointments, OPD queue (schema.sql ke baad run karo)
+-- Step 2 · roles, appointments, OPD queue (run after schema.sql)
 create or replace function is_admin() returns boolean language sql security definer stable as $$
   select exists(select 1 from profiles where id=auth.uid() and role in ('Super Admin','Admin')) $$;
 
@@ -21,7 +21,7 @@ create index on appointments(appt_date);
 alter table appointments enable row level security;
 create policy "staff all" on appointments for all to authenticated using(true) with check(true);
 
--- delete sirf admin; profile edit sirf admin
+-- only admins can delete; only admins can edit profiles
 drop policy "staff all" on patients;
 create policy "read" on patients for select to authenticated using(true);
 create policy "add" on patients for insert to authenticated with check(true);
@@ -29,5 +29,5 @@ create policy "edit" on patients for update to authenticated using(true);
 create policy "del admin" on patients for delete to authenticated using(is_admin());
 create policy "admin manage" on profiles for all to authenticated using(is_admin()) with check(is_admin());
 
--- live updates (LAN sync ki jagah)
+-- live updates (replaces the old LAN sync)
 alter publication supabase_realtime add table visits, appointments;

@@ -1,10 +1,7 @@
--- Step 5 · IPD Admissions + Beds (pehli 4 SQL files ke baad run karo)
+-- Step 5 · IPD Admissions + Beds (run after the first 4 SQL files)
 create table beds(id uuid primary key default gen_random_uuid(), ward text not null, bed_no text not null,
   multi boolean not null default false, active boolean not null default true, unique(ward,bed_no));
--- PLACEHOLDER beds: app ke Bed map me "Add bed" se asli beds jodo / yahan edit karo
 insert into beds(ward,bed_no,multi) values ('Daycare','Daycare',true);
-insert into beds(ward,bed_no) select 'General','G-'||g from generate_series(1,10) g;
-insert into beds(ward,bed_no) select 'Private','P-'||g from generate_series(1,5) g;
 
 create table admissions(id uuid primary key default gen_random_uuid(), adm_no text unique,
   patient_id uuid not null references patients on delete restrict, visit_id uuid references visits on delete set null,
@@ -21,11 +18,11 @@ declare n int; m boolean; begin
     select count(*) into n from admissions where created_at::date=current_date;
     new.adm_no:='ADM-'||to_char(current_date,'YYMMDD')||'-'||lpad((n+1)::text,3,'0'); end if;
   if new.status='Admitted' then
-    if new.bed_id is null then raise exception 'Admit karne ke liye bed zaruri hai'; end if;
+    if new.bed_id is null then raise exception 'A bed is required to admit a patient'; end if;
     if new.admitted_at is null then new.admitted_at:=now(); end if;
     select multi into m from beds where id=new.bed_id;
     if not m and exists(select 1 from admissions where bed_id=new.bed_id and status='Admitted' and id<>new.id) then
-      raise exception 'Ye bed pehle se occupied hai'; end if; end if;
+      raise exception 'This bed is already occupied'; end if; end if;
   return new; end $$;
 create trigger trg_adm before insert or update on admissions for each row execute function public.admission_guard();
 

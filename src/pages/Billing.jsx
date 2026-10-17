@@ -14,13 +14,13 @@ export default function Billing(){
   useEffect(()=>{if(tab==='list')loadList()},[tab,date])
   const sub=sum(items),total=Math.max(0,sub-(+disc||0)),upd=(i,k,v)=>setItems(items.map((x,j)=>j===i?{...x,[k]:v}:x))
   const save=async()=>{setErr('');const clean=items.filter(x=>x.d.trim()&&+x.r>0).map(x=>({d:x.d.trim(),q:+x.q||1,r:+x.r}))
-    if(!pt)return setErr('Pehle patient select karo');if(!clean.length)return setErr('Kam se kam ek item (naam + rate) daalo')
-    if((+pay||0)>total)return setErr('Paid amount total se zyada nahi ho sakta');setBusy(true)
+    if(!pt)return setErr('Select a patient first');if(!clean.length)return setErr('Add at least one item (name and rate)')
+    if((+pay||0)>total)return setErr('Paid amount cannot exceed the total');setBusy(true)
     const {data:b,error}=await supabase.from('bills').insert({patient_id:pt.id,kind,items:clean,subtotal:sum(clean),discount:+disc||0,total:Math.max(0,sum(clean)-(+disc||0)),mode}).select('*, patients(name,uhid)').single()
     if(error){setBusy(false);return setErr(error.message)}
     if(+pay>0){const {error:e2}=await supabase.from('payments').insert({bill_id:b.id,amount:+pay,mode});if(e2){setBusy(false);return setErr(e2.message)};b.paid=+pay}
     setBusy(false);setShow(b);setPt(null);setQ('');setItems([{d:'',q:1,r:''}]);setDisc('');setPay('')}
-  const collect=async b=>{const amt=+due[b.id];if(!amt||amt<=0||amt>b.total-b.paid)return alert('Sahi amount daalo (due se zyada nahi)')
+  const collect=async b=>{const amt=+due[b.id];if(!amt||amt<=0||amt>b.total-b.paid)return alert('Enter a valid amount (not more than the due)')
     const {error}=await supabase.from('payments').insert({bill_id:b.id,amount:amt,mode:'Cash'});if(error)return alert(error.message);setDue({...due,[b.id]:''});loadList()}
   return <div className="space-y-4">
     <div className="flex gap-2">{[['new','New bill'],['list','Bills & dues']].map(([k,l])=><button key={k} onClick={()=>setTab(k)} className={`rounded-xl px-4 py-2 text-sm font-semibold ${tab===k?'bg-navy text-white':'bg-white text-slate-500'}`}>{l}</button>)}</div>
@@ -43,7 +43,7 @@ export default function Billing(){
         {err&&<p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{err}</p>}<button className="btn w-full" disabled={busy} onClick={save}><RI size={16}/>{busy?'Saving…':'Generate receipt'}</button></div></div>
     :<div className="space-y-3"><div className="flex items-center gap-3"><input type="date" className="inp max-w-[200px]" value={date} onChange={e=>setDate(e.target.value)}/>
       <span className="text-xs text-slate-500">Collected: <b className="text-navy">{inr(list.filter(x=>x.status!=='Cancelled').reduce((a,x)=>a+Number(x.paid),0))}</b> · Due: <b className="text-red-600">{inr(list.filter(x=>x.status!=='Cancelled').reduce((a,x)=>a+Number(x.total)-Number(x.paid),0))}</b></span></div>
-      <div className="card divide-y divide-slate-100">{list.length===0&&<p className="p-10 text-center text-sm text-slate-400">Is din koi bill nahi.</p>}
+      <div className="card divide-y divide-slate-100">{list.length===0&&<p className="p-10 text-center text-sm text-slate-400">No bills on this day.</p>}
         {list.map(b=>{const cx=b.status==='Cancelled',bal=cx?0:b.total-b.paid;return <div key={b.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5 text-sm">
           <button onClick={()=>setShow(b)} className="min-w-0 flex-1 text-left"><b>{b.patients?.name}</b><div className="text-xs text-slate-400">{b.bill_no} · {b.kind} · {inr(b.total)}</div></button>
           {bal>0?<><span className="text-xs font-bold text-red-600">Due {inr(bal)}</span><input className="inp !w-24 !py-1.5" type="number" placeholder="₹" value={due[b.id]||''} onChange={e=>setDue({...due,[b.id]:e.target.value})}/><button className="btn !py-1.5 !text-xs" onClick={()=>collect(b)}>Collect</button></>

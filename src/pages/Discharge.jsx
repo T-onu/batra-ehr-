@@ -13,14 +13,14 @@ export default function Discharge({profile}){
   const set=k=>e=>setF({...f,[k]:e.target.value}),med=(i,k,v)=>setF({...f,meds:f.meds.map((m,j)=>j===i?{...m,[k]:v}:m)})
   const save=async()=>{const {error}=await supabase.from('discharge_summaries').upsert({admission_id:sel.id,patient_id:sel.patient_id,doctor:doc,data:f,updated_at:new Date().toISOString()},{onConflict:'admission_id'});setMsg(error?'Error: '+error.message:'Saved ✓')}
   const T=(l,k,r=3)=><div><label className="lbl">{l}</label><textarea rows={r} className="inp" disabled={!canEdit} value={f[k]} onChange={set(k)}/></div>
-  if(!sel)return <div className="space-y-3"><p className="text-sm text-slate-500">Admitted ya discharged patient chuno — discharge card banane / print karne ke liye.</p>
-    <div className="card divide-y divide-slate-100">{list.length===0&&<p className="p-10 text-center text-sm text-slate-400">Abhi koi admission nahi.</p>}
+  if(!sel)return <div className="space-y-3"><p className="text-sm text-slate-500">Select an admitted or discharged patient to create or print a discharge card.</p>
+    <div className="card divide-y divide-slate-100">{list.length===0&&<p className="p-10 text-center text-sm text-slate-400">No admissions yet.</p>}
       {list.map(a=><button key={a.id} onClick={()=>open(a)} className="flex w-full items-center gap-3 px-5 py-3.5 text-left hover:bg-slate-50"><span className="flex-1"><b className="block text-sm">{a.patients?.name}</b><span className="text-xs text-slate-400">{a.adm_no} · {a.procedure} ({a.side})</span></span>
         <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${a.status==='Admitted'?'bg-red-50 text-red-600':'bg-emerald-50 text-emerald-700'}`}>{a.status}</span></button>)}</div></div>
   const p=sel.patients
   return <div className="space-y-4"><div className="card flex items-center gap-3 bg-gradient-to-r from-navy to-accent p-5 text-white"><div className="flex-1"><div className="text-xs text-blue-100">{p.uhid} · {sel.adm_no}</div><div className="text-xl font-extrabold">{p.name}</div><div className="text-xs text-blue-100">{sel.procedure} ({sel.side})</div></div>
       <button className="rounded-xl bg-white/15 px-3 py-2 text-xs font-semibold" onClick={()=>setSel(null)}>← List</button></div>
-    {!canEdit&&<p className="rounded-xl bg-amber-50 px-4 py-2 text-xs text-amber-700">Sirf Doctor/Admin card edit kar sakte hain. Aap print dekh sakte ho.</p>}
+    {!canEdit&&<p className="rounded-xl bg-amber-50 px-4 py-2 text-xs text-amber-700">Only Doctors and Admins can edit the card. You can still view and print it.</p>}
     <div className="card grid gap-3 p-5 sm:grid-cols-2">{T('Final diagnosis','diagnosis',2)}{T('Procedure performed','procedure',2)}{T('Operative notes','notes')}{T('Hospital course','course')}
       <div><label className="lbl">Condition at discharge</label><input className="inp" disabled={!canEdit} value={f.condition} onChange={set('condition')}/></div><div><label className="lbl">Discharge date</label><input type="date" className="inp" disabled={!canEdit} value={f.date} onChange={set('date')}/></div></div>
     <div className="card space-y-3 p-5"><h3 className="font-extrabold text-navy">Medicines on discharge</h3>
@@ -28,7 +28,7 @@ export default function Discharge({profile}){
         <button disabled={!canEdit} onClick={()=>setF({...f,meds:f.meds.length>1?f.meds.filter((_,j)=>j!==i):f.meds})} className="text-slate-300 hover:text-red-500"><Trash2 size={16}/></button></div>)}
       {canEdit&&<button className="text-xs font-semibold text-accent" onClick={()=>setF({...f,meds:[...f.meds,{n:'',dose:'',freq:'',days:''}]})}><Plus size={12} className="inline"/> Add medicine</button>}</div>
     <div className="card grid gap-3 p-5 sm:grid-cols-2">{T('Advice','advice',3)}{T('Follow-up','followup',3)}</div>
-    <div className="sticky bottom-20 flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/90 p-3 backdrop-blur md:bottom-4"><input className="inp max-w-[220px]" placeholder="Doctor / surgeon" disabled={!canEdit} value={doc} onChange={e=>setDoc(e.target.value)}/>
+    <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/90 p-3 backdrop-blur md:bottom-4"><input className="inp max-w-[220px]" placeholder="Doctor / surgeon" disabled={!canEdit} value={doc} onChange={e=>setDoc(e.target.value)}/>
       <span className="flex-1 text-xs font-medium text-emerald-600">{msg}</span>{canEdit&&<button className="btn" onClick={save}><Save size={16}/>Save</button>}<button className="btn !bg-emerald-600" onClick={()=>setShow(true)}><Printer size={16}/>Print card</button></div>
     {show&&<PrintSheet title="DISCHARGE CARD" meta={[sel.adm_no,'UHID '+p.uhid]} onClose={()=>setShow(false)}>
       <div className="grid grid-cols-2 gap-x-6 gap-y-1 rounded-xl bg-slate-50 p-3 text-xs"><div>Patient: <b>{p.name}</b></div><div>Age / Sex: <b>{p.age||'—'} / {p.sex||'—'}</b></div><div>Admitted: <b>{fmt(sel.admitted_at)}</b></div><div>Discharged: <b>{fmt(f.date)}</b></div><div>Bed: <b>{sel.beds?.bed_no||'—'}</b></div><div>Category: <b>{sel.category}</b></div></div>

@@ -1,4 +1,4 @@
--- Step 4 · Billing (schema, 02, 03 ke baad run karo)
+-- Step 4 · Billing (run after schema, 02 and 03)
 create table bills(id uuid primary key default gen_random_uuid(), bill_no text unique,
   patient_id uuid not null references patients on delete restrict, visit_id uuid references visits on delete set null,
   kind text not null default 'OPD', items jsonb not null default '[]',

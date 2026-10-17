@@ -1,4 +1,4 @@
--- Step 9 · Pharmacy + Optical stock (pehli 8 SQL files ke baad run karo)
+-- Step 9 · Pharmacy + Optical stock (run after the first 8 SQL files)
 alter table bills add column discount_authority text, add column delivery_date date, add column returned numeric not null default 0;
 alter table payments drop constraint payments_amount_check;
 alter table payments add constraint payments_amount_nonzero check (amount<>0);   -- negative = refund
@@ -6,9 +6,9 @@ alter table payments add constraint payments_amount_nonzero check (amount<>0);  
 create or replace function public.apply_payment() returns trigger language plpgsql security definer set search_path=public as $$
 declare s text; t numeric; p numeric; begin
   select status,total,paid into s,t,p from bills where id=new.bill_id;
-  if s='Cancelled' then raise exception 'Cancelled bill par payment nahi li ja sakti'; end if;
-  if new.amount>0 and p+new.amount>t then raise exception 'Payment bill ke balance se zyada hai'; end if;
-  if new.amount<0 and p+new.amount<0 then raise exception 'Refund paid amount se zyada hai'; end if;
+  if s='Cancelled' then raise exception 'Payments cannot be taken on a cancelled bill'; end if;
+  if new.amount>0 and p+new.amount>t then raise exception 'Payment exceeds the bill balance'; end if;
+  if new.amount<0 and p+new.amount<0 then raise exception 'Refund exceeds the amount paid'; end if;
   update bills set paid=paid+new.amount where id=new.bill_id; return new; end $$;
 
 create table stock_items(id uuid primary key default gen_random_uuid(), module text not null check (module in ('pharmacy','optical')),
@@ -31,18 +31,18 @@ create function public.module_ok(m text) returns boolean language sql security d
 
 create function public.apply_move() returns trigger language plpgsql security definer set search_path=public as $$
 declare q int; begin select qty_on_hand into q from stock_items where id=new.stock_id for update;
-  if q+new.qty<0 then raise exception 'Stock kam hai (available %)',q; end if;
+  if q+new.qty<0 then raise exception 'Insufficient stock (available %)',q; end if;
   update stock_items set qty_on_hand=q+new.qty where id=new.stock_id; return new; end $$;
 create trigger trg_move after insert on stock_moves for each row execute function public.apply_move();
 
 create function public.stock_purchase(p_module text,p_product text,p_generic text,p_salt text,p_vendor text,p_vphone text,p_batch text,p_expiry date,p_pp numeric,p_mrp numeric,p_qty int,p_date date,p_fs text,p_gt text)
 returns uuid language plpgsql security definer set search_path=public as $$
 declare v uuid; begin
-  if not module_ok(p_module) then raise exception 'Is module ka access nahi hai'; end if;
-  if coalesce(trim(p_product),'')='' then raise exception 'Product ka naam zaruri hai'; end if;
-  if p_qty is null or p_qty<=0 then raise exception 'Quantity 0 se zyada honi chahiye'; end if;
-  if p_mrp is null or p_mrp<0 or coalesce(p_pp,0)<0 then raise exception 'Price galat hai'; end if;
-  if p_module='pharmacy' and (p_expiry is null or coalesce(trim(p_batch),'')='') then raise exception 'Pharmacy me batch no. aur expiry zaruri hain'; end if;
+  if not module_ok(p_module) then raise exception 'You do not have access to this module'; end if;
+  if coalesce(trim(p_product),'')='' then raise exception 'Product name is required'; end if;
+  if p_qty is null or p_qty<=0 then raise exception 'Quantity must be greater than 0'; end if;
+  if p_mrp is null or p_mrp<0 or coalesce(p_pp,0)<0 then raise exception 'Invalid price'; end if;
+  if p_module='pharmacy' and (p_expiry is null or coalesce(trim(p_batch),'')='') then raise exception 'Batch number and expiry date are required for pharmacy items'; end if;
   insert into stock_items(module,product,generic,salt,vendor,vendor_phone,batch_no,expiry,purchase_price,mrp,frame_size,glass_type,purchase_date)
     values(p_module,trim(p_product),nullif(trim(p_generic),''),nullif(trim(p_salt),''),nullif(trim(p_vendor),''),nullif(trim(p_vphone),''),nullif(trim(p_batch),''),p_expiry,coalesce(p_pp,0),p_mrp,p_fs,p_gt,coalesce(p_date,current_date)) returning id into v;
   insert into stock_moves(stock_id,kind,qty,ref) values(v,'PURCHASE',p_qty,'Purchase: '||coalesce(nullif(trim(p_vendor),''),'—'));
@@ -51,20 +51,20 @@ declare v uuid; begin
 create function public.stock_sale(p_module text,p_patient uuid,p_items jsonb,p_discount numeric,p_authority text,p_paid numeric,p_mode text,p_delivery date)
 returns uuid language plpgsql security definer set search_path=public as $$
 declare it jsonb; s stock_items%rowtype; q int; sub numeric:=0; tot numeric; items jsonb:='[]'::jsonb; b uuid; d numeric:=coalesce(p_discount,0); begin
-  if not module_ok(p_module) then raise exception 'Is module ka access nahi hai'; end if;
-  if p_patient is null then raise exception 'Patient select karo'; end if;
-  if jsonb_array_length(coalesce(p_items,'[]'::jsonb))=0 then raise exception 'Kam se kam ek item chuno'; end if;
+  if not module_ok(p_module) then raise exception 'You do not have access to this module'; end if;
+  if p_patient is null then raise exception 'Select a patient'; end if;
+  if jsonb_array_length(coalesce(p_items,'[]'::jsonb))=0 then raise exception 'Select at least one item'; end if;
   for it in select value from jsonb_array_elements(p_items) loop
-    q:=(it->>'qty')::int; if q is null or q<=0 then raise exception 'Quantity galat hai'; end if;
+    q:=(it->>'qty')::int; if q is null or q<=0 then raise exception 'Invalid quantity'; end if;
     select * into s from stock_items where id=(it->>'stock_id')::uuid and module=p_module for update;
-    if not found then raise exception 'Stock item nahi mila'; end if;
-    if s.qty_on_hand<q then raise exception '% ka stock kam hai (available %)',s.product,s.qty_on_hand; end if;
-    if s.expiry is not null and s.expiry<current_date then raise exception '% expired hai (%)',s.product,s.expiry; end if;
+    if not found then raise exception 'Stock item not found'; end if;
+    if s.qty_on_hand<q then raise exception 'Insufficient stock for % (available %)',s.product,s.qty_on_hand; end if;
+    if s.expiry is not null and s.expiry<current_date then raise exception '% has expired (%)',s.product,s.expiry; end if;
     items:=items||jsonb_build_array(jsonb_build_object('d',s.product||coalesce(' ['||nullif(s.batch_no,'')||']',''),'q',q,'r',s.mrp,'stock_id',s.id));
     sub:=sub+q*s.mrp; end loop;
-  if d<0 or d>sub then raise exception 'Discount galat hai'; end if;
-  if d>0 and coalesce(trim(p_authority),'')='' then raise exception 'Discount ke liye authority ka naam zaruri hai'; end if;
-  tot:=sub-d; if coalesce(p_paid,0)>tot then raise exception 'Paid amount total se zyada hai'; end if;
+  if d<0 or d>sub then raise exception 'Invalid discount'; end if;
+  if d>0 and coalesce(trim(p_authority),'')='' then raise exception 'The discount authority name is required'; end if;
+  tot:=sub-d; if coalesce(p_paid,0)>tot then raise exception 'Paid amount exceeds the total'; end if;
   insert into bills(patient_id,kind,items,subtotal,discount,total,mode,discount_authority,delivery_date)
     values(p_patient,case when p_module='pharmacy' then 'Pharmacy' else 'Optical' end,items,sub,d,tot,coalesce(p_mode,'Cash'),nullif(trim(p_authority),''),p_delivery) returning id into b;
   for it in select value from jsonb_array_elements(items) loop
@@ -75,17 +75,17 @@ declare it jsonb; s stock_items%rowtype; q int; sub numeric:=0; tot numeric; ite
 create function public.stock_return_patient(p_bill uuid,p_stock uuid,p_qty int,p_reason text)
 returns jsonb language plpgsql security definer set search_path=public as $$
 declare b bills%rowtype; it jsonb; sold int; done int; rate numeric; amt numeric; ratio numeric; nt numeric; ref numeric; cn text; n int; m text; begin
-  select * into b from bills where id=p_bill for update; if not found then raise exception 'Bill nahi mila'; end if;
-  m:=lower(b.kind); if m not in ('pharmacy','optical') then raise exception 'Ye stock bill nahi hai'; end if;
-  if not module_ok(m) then raise exception 'Is module ka access nahi hai'; end if;
-  if b.status='Cancelled' then raise exception 'Cancelled bill par return nahi ho sakta'; end if;
-  if coalesce(trim(p_reason),'')='' then raise exception 'Credit note ke liye reason zaruri hai'; end if;
-  if p_qty is null or p_qty<=0 then raise exception 'Quantity galat hai'; end if;
+  select * into b from bills where id=p_bill for update; if not found then raise exception 'Bill not found'; end if;
+  m:=lower(b.kind); if m not in ('pharmacy','optical') then raise exception 'This is not a stock bill'; end if;
+  if not module_ok(m) then raise exception 'You do not have access to this module'; end if;
+  if b.status='Cancelled' then raise exception 'Items on a cancelled bill cannot be returned'; end if;
+  if coalesce(trim(p_reason),'')='' then raise exception 'A reason is required for the credit note'; end if;
+  if p_qty is null or p_qty<=0 then raise exception 'Invalid quantity'; end if;
   select e into it from jsonb_array_elements(b.items) e where e->>'stock_id'=p_stock::text limit 1;
-  if it is null then raise exception 'Ye item is bill me nahi hai'; end if;
+  if it is null then raise exception 'This item is not on the bill'; end if;
   sold:=(it->>'q')::int; rate:=(it->>'r')::numeric;
   select coalesce(sum(qty),0) into done from credit_notes where bill_id=p_bill and stock_id=p_stock;
-  if p_qty>sold-done then raise exception 'Sirf % unit return ho sakte hain',sold-done; end if;
+  if p_qty>sold-done then raise exception 'Only % unit(s) can be returned',sold-done; end if;
   ratio:=case when b.subtotal>0 then (b.subtotal-b.discount)/b.subtotal else 1 end;
   amt:=round(p_qty*rate*ratio,2); nt:=b.total-amt; ref:=greatest(0,b.paid-nt);
   perform pg_advisory_xact_lock(hashtext('cn_no'));
@@ -98,11 +98,11 @@ declare b bills%rowtype; it jsonb; sold int; done int; rate numeric; amt numeric
   return jsonb_build_object('cn_no',cn,'amount',amt,'refund',ref); end $$;
 
 create function public.stock_remove(p_stock uuid,p_qty int,p_kind text,p_note text) returns void language plpgsql security definer set search_path=public as $$
-declare m text; begin select module into m from stock_items where id=p_stock; if m is null then raise exception 'Stock item nahi mila'; end if;
-  if not module_ok(m) then raise exception 'Is module ka access nahi hai'; end if;
-  if p_kind not in ('VENDOR_RETURN','WRITE_OFF') then raise exception 'Galat type'; end if;
-  if p_qty is null or p_qty<=0 then raise exception 'Quantity galat hai'; end if;
-  if coalesce(trim(p_note),'')='' then raise exception 'Reason / vendor ka naam zaruri hai'; end if;
+declare m text; begin select module into m from stock_items where id=p_stock; if m is null then raise exception 'Stock item not found'; end if;
+  if not module_ok(m) then raise exception 'You do not have access to this module'; end if;
+  if p_kind not in ('VENDOR_RETURN','WRITE_OFF') then raise exception 'Invalid type'; end if;
+  if p_qty is null or p_qty<=0 then raise exception 'Invalid quantity'; end if;
+  if coalesce(trim(p_note),'')='' then raise exception 'A reason or vendor name is required'; end if;
   insert into stock_moves(stock_id,kind,qty,note) values(p_stock,p_kind,-p_qty,trim(p_note)); end $$;
 
 alter table stock_items enable row level security; alter table stock_moves enable row level security; alter table credit_notes enable row level security;

@@ -16,10 +16,10 @@ export default function Audit(){
     <div><label className="lbl">User email</label><input className="inp" value={u} onChange={e=>setU(e.target.value)} placeholder="search"/></div>
     <div><label className="lbl">From</label><input type="date" className="inp" value={from} onChange={e=>setFrom(e.target.value)}/></div><div><label className="lbl">To</label><input type="date" className="inp" value={to} onChange={e=>setTo(e.target.value)}/></div></div>
     {err&&<p className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-600">{err}</p>}
-    <div className="card divide-y divide-slate-100">{rows.length===0&&<p className="p-10 text-center text-sm text-slate-400">Is filter me koi record nahi.</p>}
+    <div className="card divide-y divide-slate-100">{rows.length===0&&<p className="p-10 text-center text-sm text-slate-400">No records match these filters.</p>}
       {rows.map(r=><div key={r.id} className="px-5 py-3 text-xs"><button className="flex w-full flex-wrap items-center gap-2 text-left" onClick={()=>setOpen(open===r.id?null:r.id)}>
         <span className="w-32 text-slate-400">{new Date(r.at).toLocaleString('en-GB',{dateStyle:'short',timeStyle:'short'})}</span><span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${TONE[r.action]}`}>{r.action}</span>
         <b className="text-navy">{r.table_name}</b><span className="text-slate-500">{r.user_email||'system'}</span><span className="min-w-0 flex-1 truncate text-slate-600">{summ(r)}</span></button>
         {open===r.id&&<pre className="mt-2 max-h-64 overflow-auto rounded-xl bg-slate-50 p-3 text-[11px]">{JSON.stringify(r.changes,null,2)}</pre>}</div>)}</div>
-    {more&&<button className="btn mx-auto" onClick={()=>fetchPg(pg+1)}>Aur dikhao</button>}</div>
+    {more&&<button className="btn mx-auto" onClick={()=>fetchPg(pg+1)}>Load more</button>}</div>
 }
