@@ -1,8 +1,8 @@
-export const ROLES=['Super Admin','Admin','Doctor','Reception','Billing','Pharmacy','Optical']
+export const ROLES=['Super Admin','Admin','Doctor','Reception','Billing','Pharmacy','Optical','Sync']
 const ALL='*'
 export const ACCESS={ 'Super Admin':ALL, Admin:ALL,
   Doctor:['dashboard','patients','queue','clinical','diagnostics','ipd','discharge','documents'],
   Reception:['dashboard','patients','appointments','queue','billing','diagnostics','documents'],
   Billing:['dashboard','patients','billing','ipd','discharge','reports','diagnostics','documents'],
-  Pharmacy:['dashboard','pharmacy'], Optical:['dashboard','optical'] }
+  Pharmacy:['dashboard','pharmacy'], Optical:['dashboard','optical'], Sync:['dashboard'] }
 export const can=(role,page)=>{const a=ACCESS[role]||ACCESS.Reception;return a===ALL||a.includes(page)}

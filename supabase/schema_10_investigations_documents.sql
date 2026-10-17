@@ -1,6 +1,6 @@
--- Step 10 · Investigations + Scanned Documents + purane app jaisi numbering (pehli 9 SQL files ke baad run karo)
+-- Step 10 · Investigations + Scanned Documents + numbering like the old app (run after the first 9 SQL files)
 
--- A) Purane app jaisa numbering: BEH-OPD-2026-000001 / BEH-IPD-2026-000001 (sirf naye records ke liye)
+-- A) Numbering like the old app: BEH-OPD-2026-000001 / BEH-IPD-2026-000001 (new records only)
 create or replace function public.set_visit_no() returns trigger language plpgsql security definer set search_path=public as $$
 declare n int; y int; yr text; begin perform pg_advisory_xact_lock(hashtext('visit_no'));
   yr:=to_char(new.visit_date,'YYYY');
@@ -14,14 +14,14 @@ declare n int; m boolean; yr text:=to_char(current_date,'YYYY'); begin
     select coalesce(max(right(adm_no,6)::int),0) into n from admissions where adm_no like 'BEH-IPD-'||yr||'-%';
     new.adm_no:='BEH-IPD-'||yr||'-'||lpad((n+1)::text,6,'0'); end if;
   if new.status='Admitted' then
-    if new.bed_id is null then raise exception 'Admit karne ke liye bed zaruri hai'; end if;
+    if new.bed_id is null then raise exception 'A bed is required to admit a patient'; end if;
     if new.admitted_at is null then new.admitted_at:=now(); end if;
     select multi into m from beds where id=new.bed_id;
     if not m and exists(select 1 from admissions where bed_id=new.bed_id and status='Admitted' and id<>new.id) then
-      raise exception 'Ye bed pehle se occupied hai'; end if; end if;
+      raise exception 'This bed is already occupied'; end if; end if;
   return new; end $$;
 
--- B) Master list (purane app ki Procedures.xlsx wali: 13 OPD investigations + 87 IPD procedures)
+-- B) Master list (from the old app's Procedures.xlsx: 13 OPD investigations + 87 IPD procedures)
 create table catalog_items(id uuid primary key default gen_random_uuid(), kind text not null check (kind in ('opd_investigation','ipd_procedure')),
   name text not null, category text, active boolean not null default true, unique(kind,name));
 insert into catalog_items(kind,name,category) values
@@ -137,17 +137,17 @@ create index on investigations(patient_id); create index on investigations(statu
 create function public.order_investigations(p_patient uuid,p_ctx text,p_adm uuid,p_items jsonb,p_discount numeric,p_authority text,p_paid numeric,p_mode text)
 returns uuid language plpgsql security definer set search_path=public as $$
 declare it jsonb; sub numeric:=0; d numeric:=coalesce(p_discount,0); c numeric; b uuid; begin
-  if public.my_role() not in ('Reception','Billing','Admin','Super Admin') then raise exception 'Aapka role investigation bill nahi bana sakta'; end if;
-  if p_ctx not in ('OPD','IPD') then raise exception 'OPD ya IPD chuno'; end if;
+  if public.my_role() not in ('Reception','Billing','Admin','Super Admin') then raise exception 'Your role cannot create investigation bills'; end if;
+  if p_ctx not in ('OPD','IPD') then raise exception 'Select OPD or IPD'; end if;
   if p_ctx='IPD' and (p_adm is null or not exists(select 1 from admissions where id=p_adm and patient_id=p_patient and status in ('Admitted','Discharged')))
-    then raise exception 'IPD ke liye is patient ka admission chuno'; end if;
-  if jsonb_array_length(coalesce(p_items,'[]'::jsonb))=0 then raise exception 'Kam se kam ek item chuno'; end if;
+    then raise exception 'Select this patient''s admission for an IPD order'; end if;
+  if jsonb_array_length(coalesce(p_items,'[]'::jsonb))=0 then raise exception 'Select at least one item'; end if;
   for it in select value from jsonb_array_elements(p_items) loop
-    if coalesce(trim(it->>'name'),'')='' then raise exception 'Item ka naam zaruri hai'; end if;
-    c:=(it->>'charge')::numeric; if c is null or c<0 then raise exception 'Har item ka charge daalo'; end if; sub:=sub+c; end loop;
-  if d<0 or d>sub then raise exception 'Discount galat hai'; end if;
-  if d>0 and coalesce(trim(p_authority),'')='' then raise exception 'Discount ke liye authority ka naam zaruri hai'; end if;
-  if coalesce(p_paid,0)>sub-d then raise exception 'Paid amount total se zyada hai'; end if;
+    if coalesce(trim(it->>'name'),'')='' then raise exception 'Item name is required'; end if;
+    c:=(it->>'charge')::numeric; if c is null or c<0 then raise exception 'Enter a charge for every item'; end if; sub:=sub+c; end loop;
+  if d<0 or d>sub then raise exception 'Invalid discount'; end if;
+  if d>0 and coalesce(trim(p_authority),'')='' then raise exception 'The discount authority name is required'; end if;
+  if coalesce(p_paid,0)>sub-d then raise exception 'Paid amount exceeds the total'; end if;
   insert into bills(patient_id,kind,items,subtotal,discount,total,mode,discount_authority)
     values(p_patient,case p_ctx when 'OPD' then 'Investigation' else 'IPD Procedure' end,
       (select jsonb_agg(jsonb_build_object('d',x->>'name','q',1,'r',(x->>'charge')::numeric)) from jsonb_array_elements(p_items) x),

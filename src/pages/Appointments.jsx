@@ -13,7 +13,7 @@ export default function Appointments(){
     <button className="btn ml-auto" onClick={()=>setOpen(!open)}><Plus size={16}/>Book</button></div>
     {open&&<form onSubmit={add} className="card grid gap-3 p-5 sm:grid-cols-2">{I('name','Patient name *','text',1)}{I('phone','Phone')}{I('appt_time','Time','time')}{I('consultant','Consultant')}
       <div className="sm:col-span-2">{I('reason','Reason')}</div>{err&&<p className="text-xs text-red-600 sm:col-span-2">{err}</p>}<button className="btn sm:col-span-2">Save appointment</button></form>}
-    <div className="card divide-y divide-slate-100">{rows.length===0&&<p className="p-10 text-center text-sm text-slate-400">Is din koi appointment nahi.</p>}
+    <div className="card divide-y divide-slate-100">{rows.length===0&&<p className="p-10 text-center text-sm text-slate-400">No appointments on this day.</p>}
       {rows.map(r=><div key={r.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5"><div className="w-16 text-sm font-bold text-navy">{r.appt_time?.slice(0,5)||'—'}</div>
         <div className="min-w-0 flex-1"><div className="font-semibold">{r.name}</div><div className="text-xs text-slate-400">{r.phone} · {r.consultant||'—'} {r.reason&&'· '+r.reason}</div></div>
         <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${TONE[r.status]}`}>{r.status}</span>

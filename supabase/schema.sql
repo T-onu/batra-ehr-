@@ -1,8 +1,8 @@
 -- Batra Eye EHR · v23 · run in Supabase SQL Editor
 create table profiles(id uuid primary key references auth.users on delete cascade, name text, role text not null default 'Reception', created_at timestamptz default now());
-create sequence uhid_seq start 1;
+create sequence uhid_seq start 101;
 create table patients(id uuid primary key default gen_random_uuid(),
-  uhid text unique not null default ('BEH-'||lpad(nextval('uhid_seq')::text,6,'0')),
+  uhid text unique not null default ('BEH'||nextval('uhid_seq')::text),
   name text not null, age int, sex text, phone text, address text, created_at timestamptz default now());
 create table visits(id uuid primary key default gen_random_uuid(), patient_id uuid not null references patients on delete cascade,
   kind text not null check (kind in ('OPD','IPD')), visit_no text unique, visit_date date not null default current_date, consultant text,
@@ -23,7 +23,7 @@ create function public.handle_new_user() returns trigger language plpgsql securi
 begin insert into public.profiles(id,name) values(new.id,coalesce(new.raw_user_meta_data->>'name',new.email)); return new; end $$;
 create trigger on_signup after insert on auth.users for each row execute function public.handle_new_user();
 
--- RLS: logged-in staff only (role-wise rights agle step me tighten karenge)
+-- RLS: logged-in staff only (role-based rights are tightened in later steps)
 alter table profiles enable row level security; alter table patients enable row level security; alter table visits enable row level security;
 create policy "staff all" on patients for all to authenticated using(true) with check(true);
 create policy "staff all" on visits   for all to authenticated using(true) with check(true);

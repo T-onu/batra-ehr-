@@ -7,10 +7,10 @@ export default function StaffRoles({profile}){
   const load=async()=>{const {data}=await supabase.from('profiles').select('*').order('created_at');setRows(data||[])}
   useEffect(()=>{load()},[])
   const patch=async(id,o)=>{setMsg('');const {error}=await supabase.from('profiles').update(o).eq('id',id);if(error)setMsg(error.message);else load()}
-  const rename=r=>{const n=prompt('Naam:',r.name||'');if(n&&n.trim())patch(r.id,{name:n.trim()})}
-  const reset=async r=>{if(!r.email)return;const {error}=await supabase.auth.resetPasswordForEmail(r.email,{redirectTo:window.location.origin});setMsg(error?error.message:`Reset link ${r.email} par bhej diya ✓`)}
+  const rename=r=>{const n=prompt('Name:',r.name||'');if(n&&n.trim())patch(r.id,{name:n.trim()})}
+  const reset=async r=>{if(!r.email)return;const {error}=await supabase.auth.resetPasswordForEmail(r.email,{redirectTo:window.location.origin});setMsg(error?error.message:`Reset link sent to ${r.email} ✓`)}
   return <div className="space-y-4">
-    <div className="card flex gap-3 bg-blue-50/60 p-4 text-xs text-slate-600"><Info size={16} className="mt-0.5 shrink-0 text-accent"/><div><b className="text-navy">Naya staff kaise add karein:</b> Supabase → Authentication → Users → Add user (email + password, <b>Auto Confirm</b> tick). Wo yahan apne aap aa jayega (role Reception se shuru), phir yahan se uska role set karo. Disabled user ko login ke baad kuch nahi dikhta aur database bhi usse data nahi deta.</div></div>
+    <div className="card flex gap-3 bg-blue-50/60 p-4 text-xs text-slate-600"><Info size={16} className="mt-0.5 shrink-0 text-accent"/><div><b className="text-navy">How to add new staff:</b> In Supabase go to Authentication → Users → Add user (enter an email and password and tick <b>Auto Confirm</b>). The user appears here automatically with the Reception role — then set the correct role below. A disabled user sees nothing after signing in, and the database also refuses to give them any data.</div></div>
     {msg&&<p className="rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-800">{msg}</p>}
     <div className="card divide-y divide-slate-100">{rows.map(r=>{const me=r.id===profile?.id,locked=me||(r.role==='Super Admin'&&!isSuper)
       return <div key={r.id} className={`flex flex-wrap items-center gap-3 px-5 py-3.5 text-sm ${r.active?'':'bg-slate-50 opacity-70'}`}>
