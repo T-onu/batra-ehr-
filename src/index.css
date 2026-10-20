@@ -8,3 +8,5 @@ body{@apply bg-[#f3f5fa] text-[14px] text-slate-800 antialiased;overflow-x:hidde
 .lbl{@apply mb-1 block text-xs font-semibold text-slate-500}
 ::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px}
 @media print{body *{visibility:hidden}.print-area,.print-area *{visibility:visible}.print-area{position:absolute;left:0;top:0;width:100%;box-shadow:none!important;border:0!important}.no-print{display:none!important}}
+@page{size:A4;margin:8mm}
+@media print{.opd-sheet{width:194mm}.opd-half{height:140mm;overflow:hidden;box-sizing:border-box;page-break-inside:avoid}.opd-sheet{border:0!important}}

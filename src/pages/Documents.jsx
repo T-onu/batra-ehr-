@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import PatientPick from '../components/PatientPick'
 const TYPES=['Clinical Document','Discharge Summary','Lab / Investigation Report','Aadhaar / ID','Insurance / Credit','Imaging','Referral Letter','Other'],OKM=['application/pdf','image/jpeg','image/png','image/webp']
 export default function Documents({profile}){
-  const canUp=['Reception','Doctor','Billing','Admin','Super Admin'].includes(profile?.role),isAdm=['Admin','Super Admin'].includes(profile?.role)
+  const canUp=['Reception','Doctor','Admin','Super Admin'].includes(profile?.role),isAdm=['Admin','Super Admin'].includes(profile?.role)
   const [pt,setPt]=useState(null),[docs,setDocs]=useState([]),[who,setWho]=useState({}),[type,setType]=useState(TYPES[0]),[name,setName]=useState(''),[notes,setNotes]=useState(''),[file,setFile]=useState(null),[err,setErr]=useState(''),[msg,setMsg]=useState(''),[busy,setBusy]=useState(false)
   const load=async()=>{if(!pt){setDocs([]);return};const {data}=await supabase.from('documents').select('*').eq('patient_id',pt.id).is('deleted_at',null).order('created_at',{ascending:false});setDocs(data||[])}
   useEffect(()=>{load()},[pt]);useEffect(()=>{supabase.from('profiles').select('id,name').then(({data})=>setWho(Object.fromEntries((data||[]).map(p=>[p.id,p.name]))))},[])

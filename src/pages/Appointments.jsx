@@ -5,9 +5,9 @@ const TONE={Booked:'bg-blue-50 text-accent',Arrived:'bg-emerald-50 text-emerald-
 export default function Appointments(){
   const [d,setD]=useState(today()),[rows,setRows]=useState([]),[f,setF]=useState({name:'',phone:'',appt_time:'',consultant:'',reason:''}),[open,setOpen]=useState(false),[err,setErr]=useState('')
   const load=async()=>{const {data}=await supabase.from('appointments').select('*').eq('appt_date',d).order('appt_time');setRows(data||[])}
-  useEffect(()=>{load();const ch=supabase.channel('appt').on('postgres_changes',{event:'*',schema:'public',table:'appointments'},load).subscribe();return()=>supabase.removeChannel(ch)},[d])
+  useEffect(()=>{load();const ch=supabase.channel('appt').on('postgres_changes',{event:'*',schema:'public',table:'appointments'},load).subscribe();const iv=setInterval(load,15000);return()=>{supabase.removeChannel(ch);clearInterval(iv)}},[d])
   const add=async e=>{e.preventDefault();const {error}=await supabase.from('appointments').insert({...f,appt_time:f.appt_time||null,appt_date:d});if(error)return setErr(error.message);setF({name:'',phone:'',appt_time:'',consultant:'',reason:''});setOpen(false);setErr('')}
-  const st=(id,status)=>supabase.from('appointments').update({status}).eq('id',id)
+  const st=async(id,status)=>{const {data,error}=await supabase.from('appointments').update({status}).eq('id',id).select('id');if(error)return alert(error.message);if(!data.length)return alert('You do not have permission to change this appointment.');load()}
   const I=(k,l,t='text',r)=><div><label className="lbl">{l}</label><input className="inp" type={t} required={r} value={f[k]} onChange={e=>setF({...f,[k]:e.target.value})}/></div>
   return <div className="space-y-4"><div className="flex gap-3"><input type="date" className="inp max-w-[200px]" value={d} onChange={e=>setD(e.target.value)}/>
     <button className="btn ml-auto" onClick={()=>setOpen(!open)}><Plus size={16}/>Book</button></div>

@@ -12,11 +12,11 @@ export default function Clinical({profile}){
   const [q,setQ]=useState([]),[sel,setSel]=useState(null),[f,setF]=useState(blank()),[hist,setHist]=useState([]),[doc,setDoc]=useState(profile?.name||''),[msg,setMsg]=useState(''),[rx,setRx]=useState(false)
   const canEdit=['Doctor','Admin','Super Admin'].includes(profile?.role)
   const loadQ=async()=>{const {data}=await supabase.from('visits').select('*, patients(id,name,age,sex,phone,uhid)').eq('visit_date',today()).eq('kind','OPD').neq('status','Cancelled').order('token');setQ(data||[])}
-  useEffect(()=>{loadQ();const ch=supabase.channel('clin').on('postgres_changes',{event:'*',schema:'public',table:'visits'},loadQ).subscribe();return()=>supabase.removeChannel(ch)},[])
+  useEffect(()=>{loadQ();const ch=supabase.channel('clin').on('postgres_changes',{event:'*',schema:'public',table:'visits'},loadQ).subscribe();const iv=setInterval(loadQ,15000);return()=>{supabase.removeChannel(ch);clearInterval(iv)}},[])
   const open=async v=>{setSel(v);setMsg('');
     const {data:e}=await supabase.from('exams').select('*').eq('visit_id',v.id).maybeSingle(); setF(e?{...blank(),...e.data}:blank()); setDoc(e?.doctor||profile?.name||'')
     const {data:h}=await supabase.from('exams').select('*, visits(visit_date,visit_no)').eq('patient_id',v.patient_id).neq('visit_id',v.id).order('created_at',{ascending:false}).limit(5); setHist(h||[])
-    if(v.status==='Waiting'&&canEdit)supabase.from('visits').update({status:'In Exam'}).eq('id',v.id)}
+    if(v.status==='Waiting'&&canEdit){await supabase.from('visits').update({status:'In Exam'}).eq('id',v.id);loadQ()}}
   const put=(path,val)=>setF(p=>{const n=structuredClone(p);let o=n;path.slice(0,-1).forEach(k=>o=o[k]);o[path.at(-1)]=val;return n})
   const save=async()=>{const {error}=await supabase.from('exams').upsert({visit_id:sel.id,patient_id:sel.patient_id,doctor:doc,data:f,updated_at:new Date().toISOString()},{onConflict:'visit_id'})
     if(error)return setMsg('Error: '+error.message); await supabase.from('visits').update({status:'Done'}).eq('id',sel.id); setMsg('Exam saved ✓ — visit marked as Done')}
