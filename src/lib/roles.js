@@ -1,8 +1,11 @@
-export const ROLES=['Super Admin','Admin','Doctor','Reception','Billing','Pharmacy','Optical','Sync']
-const ALL='*'
-export const ACCESS={ 'Super Admin':ALL, Admin:ALL,
-  Doctor:['dashboard','patients','queue','clinical','diagnostics','ipd','discharge','documents'],
-  Reception:['dashboard','patients','appointments','queue','billing','diagnostics','documents'],
-  Billing:['dashboard','patients','billing','ipd','discharge','reports','diagnostics','documents'],
-  Pharmacy:['dashboard','pharmacy'], Optical:['dashboard','optical'], Sync:['dashboard'] }
-export const can=(role,page)=>{const a=ACCESS[role]||ACCESS.Reception;return a===ALL||a.includes(page)}
+export const ROLES=['Super Admin','Admin','Doctor','Reception']
+const ADMIN_ONLY=['users','audit']
+const EVERYTHING=['dashboard','patients','appointments','queue','clinical','diagnostics','ipd','discharge','documents','billing','receipts','pharmacy','optical','reports']
+export const ACCESS={
+  'Super Admin':[...EVERYTHING,...ADMIN_ONLY],
+  Admin:EVERYTHING,
+  Doctor:['dashboard','patients','appointments','queue','clinical','diagnostics','ipd','discharge','documents'],
+  Reception:['dashboard','patients','appointments','queue','optical','documents']}
+export const can=(role,page)=>(ACCESS[role]||ACCESS.Reception).includes(page)
+// Roles that may handle money (receive payments, IPD billing, stock)
+export const isBilling=role=>role==='Admin'||role==='Super Admin'

@@ -6,7 +6,7 @@ import OpdRegister from '../components/OpdRegister'
 const dt=d=>d?new Date(d).toLocaleDateString('en-GB'):'—'
 export default function PatientProfile({id,profile,onBack}){
   const isAdm=['Admin','Super Admin'].includes(profile?.role)
-  const canReg=['Reception','Billing','Admin','Super Admin'].includes(profile?.role)
+  const canReg=['Reception','Admin','Super Admin'].includes(profile?.role)
   const [p,setP]=useState(null),[d,setD]=useState({visits:[],exams:[],bills:[],adm:[],docs:[],inv:[]}),[ed,setEd]=useState(false),[f,setF]=useState({}),[show,setShow]=useState(null),[msg,setMsg]=useState(''),[opd,setOpd]=useState(false)
   const load=async()=>{const [a,v,e,b,m,dc,iv]=await Promise.all([supabase.from('patients').select('*').eq('id',id).single(),
     supabase.from('visits').select('*').eq('patient_id',id).order('created_at',{ascending:false}),

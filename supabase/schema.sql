@@ -1,8 +1,8 @@
 -- Batra Eye EHR · v23 · run in Supabase SQL Editor
 create table profiles(id uuid primary key references auth.users on delete cascade, name text, role text not null default 'Reception', created_at timestamptz default now());
-create sequence uhid_seq start 101;
+create sequence uhid_seq start 1;
 create table patients(id uuid primary key default gen_random_uuid(),
-  uhid text unique not null default ('BEH'||nextval('uhid_seq')::text),
+  uhid text unique not null default (lpad(nextval('uhid_seq')::text,6,'0')),
   name text not null, age int, sex text, phone text, address text, created_at timestamptz default now());
 create table visits(id uuid primary key default gen_random_uuid(), patient_id uuid not null references patients on delete cascade,
   kind text not null check (kind in ('OPD','IPD')), visit_no text unique, visit_date date not null default current_date, consultant text,

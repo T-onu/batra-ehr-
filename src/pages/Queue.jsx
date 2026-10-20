@@ -4,8 +4,8 @@ const TONE={Waiting:'bg-amber-50 text-amber-700','In Exam':'bg-blue-50 text-acce
 export default function Queue(){
   const [rows,setRows]=useState([])
   const load=async()=>{const {data}=await supabase.from('visits').select('*, patients(name,age,sex,uhid)').eq('visit_date',today()).eq('kind','OPD').order('token');setRows(data||[])}
-  useEffect(()=>{load();const ch=supabase.channel('queue').on('postgres_changes',{event:'*',schema:'public',table:'visits'},load).subscribe();return()=>supabase.removeChannel(ch)},[])
-  const mv=(id,status)=>supabase.from('visits').update({status}).eq('id',id)
+  useEffect(()=>{load();const ch=supabase.channel('queue').on('postgres_changes',{event:'*',schema:'public',table:'visits'},load).subscribe();const iv=setInterval(load,15000);return()=>{supabase.removeChannel(ch);clearInterval(iv)}},[])
+  const mv=async(id,status)=>{const {data,error}=await supabase.from('visits').update({status}).eq('id',id).select('id');if(error)return alert(error.message);if(!data.length)return alert('You do not have permission to change this visit.');load()}
   const cols=['Waiting','In Exam','Done']
   return <div className="space-y-4"><p className="flex items-center gap-2 text-xs text-slate-500"><span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500"/>Live — updates instantly on every device</p>
     <div className="grid gap-4 md:grid-cols-3">{cols.map(c=><div key={c} className="card p-3"><div className="mb-3 flex items-center justify-between px-2"><b className="text-sm text-navy">{c}</b><span className={`rounded-full px-2 py-0.5 text-xs font-bold ${TONE[c]}`}>{rows.filter(r=>r.status===c).length}</span></div>

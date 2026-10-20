@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { LayoutDashboard, Users, CalendarClock, ListOrdered, Stethoscope, ScanEye, FolderOpen, BedDouble, FileCheck2, ReceiptIndianRupee, Pill, Glasses, ShieldCheck, BarChart3, UserCog, KeyRound, LogOut, Ellipsis } from 'lucide-react'
+import { LayoutDashboard, Users, CalendarClock, ListOrdered, Stethoscope, ScanEye, FolderOpen, BedDouble, FileCheck2, ReceiptIndianRupee, Pill, Glasses, ShieldCheck, BarChart3, Wallet, UserCog, KeyRound, LogOut, Ellipsis } from 'lucide-react'
 import { supabase, configured } from './lib/supabase'
 import { can } from './lib/roles'
 import Dashboard from './pages/Dashboard'
@@ -15,12 +15,13 @@ import StaffRoles from './pages/StaffRoles'
 import Audit from './pages/Audit'
 import Investigations from './pages/Investigations'
 import Documents from './pages/Documents'
+import Account from './pages/Account'
 import { Pharmacy, Optical } from './pages/Inventory'
 import PasswordForm from './components/PasswordForm'
 
 const NAV=[['dashboard',LayoutDashboard,'Dashboard',Dashboard,'Main'],['patients',Users,'Patients & OPD',Patients,'Main'],['appointments',CalendarClock,'Appointments',Appointments,'Main'],['queue',ListOrdered,'OPD Queue',Queue,'Main'],
-['clinical',Stethoscope,'Clinical Exam',Clinical,'Clinical'],['diagnostics',ScanEye,'Investigations',Investigations,'Clinical'],['ipd',BedDouble,'Admissions',Ipd,'Clinical'],['discharge',FileCheck2,'Discharge Card',Discharge,'Clinical'],['documents',FolderOpen,'Documents',Documents,'Clinical'],
-['billing',ReceiptIndianRupee,'Billing',Billing,'Billing & Stock'],['pharmacy',Pill,'Pharmacy',Pharmacy,'Billing & Stock'],['optical',Glasses,'Optical',Optical,'Billing & Stock'],['reports',BarChart3,'Reports',Reports,'Billing & Stock'],
+['clinical',Stethoscope,'Clinical Exam',Clinical,'Clinical'],['diagnostics',ScanEye,'OPD Investigation / Procedure',Investigations,'Clinical'],['ipd',BedDouble,'Admissions',Ipd,'Clinical'],['discharge',FileCheck2,'Discharge Card',Discharge,'Clinical'],['documents',FolderOpen,'Documents',Documents,'Clinical'],
+['billing',ReceiptIndianRupee,'IPD Final Bill',Billing,'Billing & Stock'],['receipts',Wallet,'Money Receipt',Account,'Billing & Stock'],['pharmacy',Pill,'Pharmacy',Pharmacy,'Billing & Stock'],['optical',Glasses,'Optical',Optical,'Billing & Stock'],['reports',BarChart3,'Reports',Reports,'Billing & Stock'],
 ['users',UserCog,'Staff & Roles',StaffRoles,'Admin'],['audit',ShieldCheck,'Audit Log',Audit,'Admin']]
 
 const Logo=({size=40})=><img src="/logo.png" width={size} height={size} className="shrink-0 rounded-full bg-white" alt="Batra Eye"/>
