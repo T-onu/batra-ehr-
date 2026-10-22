@@ -13,7 +13,7 @@ export default function Billing({profile}){
   const nb=x=>(x||'').replace(/^BEH-?/,'')
   const search=async()=>{setErr('');setHits([]);const t=q.trim().replace(/[,()%]/g,' ').trim();if(!t)return
     const u=/^\d{1,6}$/.test(t)?t.padStart(6,'0'):t
-    const [p,a]=await Promise.all([supabase.from('patients').select('*').or(`uhid.ilike.${u},name.ilike.%${t}%,phone.ilike.%${t}%`).limit(8),supabase.from('admissions').select('adm_no,patients(*)').ilike('adm_no',t).limit(1)])
+    const [p,a]=await Promise.all([supabase.from('patients').select('*').or(`uhid.ilike.${u},legacy_uhid.ilike.${t},name.ilike.%${t}%,phone.ilike.%${t}%`).limit(8),supabase.from('admissions').select('adm_no,patients(*)').or(`adm_no.ilike.${t},legacy_no.ilike.${t}`).limit(1)])
     if(a.data?.length)return pick(a.data[0].patients,a.data[0].adm_no)
     const l=p.data||[];if(l.length===1)pick(l[0]);else if(!l.length)setErr('No patient matches this name, UHID, phone or IPD number.');else setHits(l)}
   const pick=async(p,admNo)=>{setPt(p);setHits([]);setQ('');setMsg('');setErr('')

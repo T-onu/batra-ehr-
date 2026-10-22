@@ -20,8 +20,8 @@ export default function Account({profile}){
   const pick=(p,f)=>{setPt(p);setFocus(f);setHits([]);setQ('');setMsg('');setErr('');load(p)}
   const search=async()=>{setErr('');setHits([]);const t=q.trim().replace(/[,()%]/g,' ').trim();if(!t)return
     const u=/^\d{1,6}$/.test(t)?t.padStart(6,'0'):t
-    const [p,v,a]=await Promise.all([supabase.from('patients').select('*').or(`uhid.ilike.${u},name.ilike.%${t}%,phone.ilike.%${t}%`).limit(8),
-      supabase.from('visits').select('visit_no,patients(*)').ilike('visit_no',t).limit(1),supabase.from('admissions').select('adm_no,patients(*)').ilike('adm_no',t).limit(1)])
+    const [p,v,a]=await Promise.all([supabase.from('patients').select('*').or(`uhid.ilike.${u},legacy_uhid.ilike.${t},name.ilike.%${t}%,phone.ilike.%${t}%`).limit(8),
+      supabase.from('visits').select('visit_no,patients(*)').or(`visit_no.ilike.${t},legacy_no.ilike.${t}`).limit(1),supabase.from('admissions').select('adm_no,patients(*)').or(`adm_no.ilike.${t},legacy_no.ilike.${t}`).limit(1)])
     if(v.data?.length)return pick(v.data[0].patients,{type:'OPD',no:v.data[0].visit_no});if(a.data?.length)return pick(a.data[0].patients,{type:'IPD',no:a.data[0].adm_no})
     const l=p.data||[];if(l.length===1)pick(l[0],null);else if(!l.length)setErr('No patient, OPD number or IPD number matches.');else setHits(l)}
   const act=bills.filter(b=>b.status!=='Cancelled'),billed=act.reduce((s,b)=>s+Number(b.total),0),got=act.reduce((s,b)=>s+Number(b.paid),0),bal=billed-got
