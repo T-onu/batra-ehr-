@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Search, X, Trash2 } from 'lucide-react'
 import { supabase, inr, today } from '../lib/supabase'
 import Receipt from '../components/Receipt'
+import ProcedurePick from '../components/ProcedurePick'
 const AUTH=['Dr. Akhil Batra','Dr. Sunanda','Other'],GLASS=['Single Vision','Bifocal','Progressive','Blue Cut','Anti-Glare','Photochromic','Polycarbonate','High Index']
 const dleft=d=>d?Math.ceil((new Date(d)-new Date(today()))/864e5):null
 const call=async(fn,a)=>{const {data,error}=await supabase.rpc(fn,a);if(error)throw error;return data}
@@ -17,7 +18,8 @@ function Inventory({module,profile}){
   const ph=module==='pharmacy',ok=['Admin','Super Admin'].includes(profile?.role),isAdm=['Admin','Super Admin'].includes(profile?.role),canSell=ok||(module==='optical'&&profile?.role==='Reception')
   const [tab,setTab]=useState('stock'),[items,setItems]=useState([]),[q,setQ]=useState(''),[err,setErr]=useState(''),[busy,setBusy]=useState(false),[rcpt,setRcpt]=useState(null)
   const load=async()=>{try{setItems(await fetchAll(()=>supabase.from('stock_items').select('*').eq('module',module).order('product')))}catch(e){setErr(e.message)}}
-  useEffect(()=>{load()},[module])
+  const [oc,setOc]=useState([])
+  useEffect(()=>{load();if(module==='optical')supabase.from('catalog_items').select('id,name,rate').eq('kind','optical_item').eq('active',true).order('name').then(({data})=>setOc(data||[]))},[module])
   const by=Object.fromEntries(items.map(i=>[i.id,i])),has=(i,s)=>[i.product,i.generic,i.salt,i.batch_no,i.vendor].some(v=>(v||'').toLowerCase().includes(s.toLowerCase()))
   // ---- sell
   const [pt,setPt]=useState(null),[cart,setCart]=useState([]),[sq,setSq]=useState(''),[disc,setDisc]=useState(''),[au,setAu]=useState(AUTH[0]),[auO,setAuO]=useState(''),[paid,setPaid]=useState(''),[mode,setMode]=useState('Cash'),[dl,setDl]=useState(''),[ref,setRef]=useState(''),[cu,setCu]=useState({name:'',qty:'1',rate:''})
@@ -59,8 +61,8 @@ function Inventory({module,profile}){
         {hits.map(i=><button key={i.id} onClick={()=>{if(!cart.find(c=>c.id===i.id))setCart([...cart,{id:i.id,qty:1}]);setSq('')}} className="flex w-full justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-50"><span><b>{i.product}</b> <span className="text-xs text-slate-400">{i.batch_no&&'['+i.batch_no+'] '}{i.expiry&&'exp '+i.expiry}</span></span><span className="text-xs text-slate-500">{inr(i.mrp)} · stock {i.qty_on_hand}</span></button>)}
         {cart.map(c=>{const i=by[c.id];return <div key={c.id} className="grid grid-cols-[1fr_64px_80px_24px] items-center gap-2 text-sm"><span className="truncate">{c.custom?c.name:i?.product} <span className="text-xs text-slate-400">{c.custom?`custom · ${inr(c.rate)}`:i?.batch_no}</span></span>
           <input className="inp !px-2 text-center" type="number" min="1" max={c.custom?undefined:i?.qty_on_hand} value={c.qty} onChange={e=>setCart(cart.map(x=>x.id===c.id?{...x,qty:e.target.value}:x))}/><b className="text-right">{inr((+c.qty||0)*unit(c))}</b><button onClick={()=>setCart(cart.filter(x=>x.id!==c.id))} className="text-slate-300 hover:text-red-500"><Trash2 size={14}/></button></div>})}
-        {!ph&&canSell&&<div className="space-y-2 rounded-xl border border-dashed border-slate-300 p-3"><div className="text-xs font-semibold text-slate-500">Add a custom product / frame (not in stock list)</div>
-          <div className="grid grid-cols-[1fr_56px_84px_auto] gap-2"><input className="inp" placeholder="Name" value={cu.name} onChange={e=>setCu({...cu,name:e.target.value})}/><input className="inp !px-2 text-center" type="number" min="1" value={cu.qty} onChange={e=>setCu({...cu,qty:e.target.value})}/><input className="inp !px-2" type="number" placeholder="Price" value={cu.rate} onChange={e=>setCu({...cu,rate:e.target.value})}/><button className="btn !px-3" onClick={addCustom}>Add</button></div></div>}
+        {!ph&&canSell&&<div className="space-y-2 rounded-xl border border-dashed border-slate-300 p-3"><div className="text-xs font-semibold text-slate-500">Add from the optical list or type a custom product / frame (price filled automatically when listed)</div>
+          <div className="grid grid-cols-[1fr_56px_84px_auto] gap-2"><ProcedurePick items={oc} value={cu.name} onChange={v=>setCu({...cu,name:v})} onPick={c=>setCu({...cu,name:c.name,rate:c.rate==null?cu.rate:String(c.rate)})} placeholder="Choose or type a name"/><input className="inp !px-2 text-center" type="number" min="1" value={cu.qty} onChange={e=>setCu({...cu,qty:e.target.value})}/><input className="inp !px-2" type="number" placeholder="Price" value={cu.rate} onChange={e=>setCu({...cu,rate:e.target.value})}/><button className="btn !px-3" onClick={addCustom}>Add</button></div></div>}
         {cart.length===0&&<p className="text-xs text-slate-400">Search above to add an item.</p>}</div></div>
       <div className="card h-fit space-y-3 p-5"><div className="flex justify-between text-sm"><span>Subtotal</span><b>{inr(sub)}</b></div>
         <div><label className="lbl">Discount (₹)</label><input className="inp" type="number" value={disc} onChange={e=>setDisc(e.target.value)}/></div>
