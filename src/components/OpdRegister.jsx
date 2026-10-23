@@ -4,7 +4,7 @@ import { supabase, inr } from '../lib/supabase'
 const AUTH = ['Dr. Akhil Batra', 'Dr. Sunanda', 'Other'], DOCS = ['Dr. Akhil Batra', 'Dr. Sunanda'], REL = ['S/O', 'D/O', 'W/O', 'C/O'], CATS = ['ECHS', 'Insurance', 'Other']
 // OPD fee by India time: Rs 100 from 8:30 AM to 4:00 PM, Rs 200 at other times (the database applies the same rule)
 export const istFee = () => { const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date()), t = (+p.find(x => x.type === 'hour').value % 24) * 60 + (+p.find(x => x.type === 'minute').value); return t >= 510 && t <= 960 ? 100 : 200 }
-const blank = { name: '', age: '', sex: 'Male', phone: '', address: '', consultant: DOCS[0], father: '', relation: 'S/O', ref: '', cat: '', discount: '', au: AUTH[0], auO: '', paid: '', mode: 'Cash' }
+const blank = { name: '', age: '', sex: 'Male', phone: '', address: '', consultant: DOCS[0], father: '', relation: 'S/O', ref: '', cat: '', wref: '', discount: '', au: AUTH[0], auO: '', paid: '', mode: 'Cash' }
 export default function OpdRegister({ patient, onDone, onClose }) {
   const [f, setF] = useState(blank), [fee, setFee] = useState(istFee()), [why, setWhy] = useState(''), [err, setErr] = useState(''), [busy, setBusy] = useState(false)
   // The fee is calculated by the database (10-day free follow-up, under-18 rate, day / after-hours rate in India time)
@@ -15,12 +15,13 @@ export default function OpdRegister({ patient, onDone, onClose }) {
   const set = k => e => setF({ ...f, [k]: e.target.value }), waived = !!f.cat, d = waived ? fee : (+f.discount || 0), net = Math.max(0, fee - d), paid = waived ? 0 : (f.paid === '' ? net : +f.paid)
   const submit = async e => {
     e.preventDefault(); setErr('')
+    if ((f.cat === 'ECHS' || f.cat === 'Insurance') && !f.wref.trim()) return setErr(f.cat === 'ECHS' ? 'Enter the ECHS card / reference number' : 'Enter the insurance policy / claim number')
     if (paid > 0 && f.mode !== 'Cash' && !f.ref.trim()) return setErr(f.mode === 'UPI' ? 'Enter the UPI transaction / UTR number' : 'Enter the card slip number or last 4 digits')
     if (!patient && f.phone.trim()) {
       const { data: dup } = await supabase.from('patients').select('name,uhid').eq('phone', f.phone.trim()).limit(1)
       if (dup?.length && !confirm(`A patient with this phone number already exists: ${dup[0].name} (${dup[0].uhid}).\nCreate a new patient anyway?`)) return
     }
-    setBusy(true); const { data, error } = await supabase.rpc('register_opd', { p_patient: patient?.id || null, p_name: f.name, p_age: f.age ? +f.age : null, p_sex: f.sex, p_phone: f.phone, p_address: f.address, p_consultant: f.consultant, p_discount: d, p_authority: waived ? f.auO : (f.au === 'Other' ? f.auO : f.au), p_category: f.cat || null, p_paid: paid, p_mode: f.mode, p_father: f.father, p_relation: f.relation, p_ref: f.ref })
+    setBusy(true); const { data, error } = await supabase.rpc('register_opd', { p_patient: patient?.id || null, p_name: f.name, p_age: f.age ? +f.age : null, p_sex: f.sex, p_phone: f.phone, p_address: f.address, p_consultant: f.consultant, p_discount: d, p_authority: waived ? f.auO : (f.au === 'Other' ? f.auO : f.au), p_category: f.cat || null, p_waiver_ref: f.wref, p_paid: paid, p_mode: f.mode, p_father: f.father, p_relation: f.relation, p_ref: f.ref })
     setBusy(false); if (error) return setErr(error.message); onDone(data)
   }
   const I = (k, l, t = 'text', req) => <div><label className="lbl">{l}</label><input className="inp" type={t} required={req} value={f[k]} onChange={set(k)} /></div>
@@ -31,6 +32,7 @@ export default function OpdRegister({ patient, onDone, onClose }) {
         <div><label className="lbl">Sex</label><select className="inp" value={f.sex} onChange={set('sex')}><option>Male</option><option>Female</option><option>Other</option></select></div><div className="grid grid-cols-[84px_1fr] gap-2 sm:col-span-2"><div><label className="lbl">Relation</label><select className="inp" value={f.relation} onChange={set('relation')}>{REL.map(r => <option key={r}>{r}</option>)}</select></div>{I('father', 'Father / Husband name')}</div><div className="sm:col-span-2">{I('address', 'Address')}</div></div>}
       <div className="flex items-center justify-between rounded-2xl bg-navy-50 p-4"><div><div className="text-xs font-semibold text-slate-500">OPD consultation fee (automatic)</div><div className="text-[11px] text-slate-400">{why || 'Calculated automatically (India time)'}</div></div><div className="text-3xl font-extrabold text-navy">{inr(fee)}</div></div>
       <div className="grid gap-3 sm:grid-cols-2"><div><label className="lbl">Consultant</label><select className="inp" value={f.consultant} onChange={set('consultant')}>{DOCS.map(x => <option key={x}>{x}</option>)}</select></div><div><label className="lbl">Fee category</label><select className="inp" value={f.cat} onChange={set('cat')}><option value="">Regular (pays fee)</option>{CATS.map(c => <option key={c} value={c}>{c} (fee waived)</option>)}</select></div>{!waived && I('discount', 'Discount (₹)', 'number')}
+        {(f.cat === 'ECHS' || f.cat === 'Insurance') && <div className="sm:col-span-2"><label className="lbl">{f.cat === 'ECHS' ? 'ECHS card / reference number *' : 'Insurance policy / claim number *'}</label><input className="inp" value={f.wref} onChange={set('wref')} /></div>}
         {f.cat === 'Other' && <div className="sm:col-span-2"><label className="lbl">Reason / authority for waiver *</label><input className="inp" value={f.auO} onChange={set('auO')} required /></div>}
         {d > 0 && !waived && <div className="sm:col-span-2"><label className="lbl">Discount authority *</label><select className="inp" value={f.au} onChange={set('au')}>{AUTH.map(a => <option key={a}>{a}</option>)}</select>{f.au === 'Other' && <input className="inp mt-2" placeholder="Full name" value={f.auO} onChange={set('auO')} />}</div>}
         {!waived && <><div><label className="lbl">Amount paid (₹)</label><input className="inp" type="number" value={f.paid === '' ? net : f.paid} onChange={set('paid')} /></div>
