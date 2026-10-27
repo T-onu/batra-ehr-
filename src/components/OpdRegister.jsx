@@ -3,7 +3,7 @@ import { X } from 'lucide-react'
 import { supabase, inr } from '../lib/supabase'
 const AUTH = ['Dr. Akhil Batra', 'Dr. Sunanda', 'Other'], DOCS = ['Dr. Akhil Batra', 'Dr. Sunanda'], REL = ['S/O', 'D/O', 'W/O', 'C/O'], CATS = ['ECHS', 'Insurance', 'Other']
 // OPD fee by India time: Rs 100 from 8:30 AM to 4:00 PM, Rs 200 at other times (the database applies the same rule)
-export const istFee = () => { const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date()), t = (+p.find(x => x.type === 'hour').value % 24) * 60 + (+p.find(x => x.type === 'minute').value); return t >= 510 && t <= 960 ? 100 : 200 }
+export const istFee = () => { const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date()), t = (+p.find(x => x.type === 'hour').value % 24) * 60 + (+p.find(x => x.type === 'minute').value); const sun = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', weekday: 'short' }).format(new Date()) === 'Sun'; return !sun && t >= 510 && t <= 960 ? 100 : 200 }
 const blank = { name: '', age: '', sex: 'Male', phone: '', address: '', consultant: DOCS[0], father: '', relation: 'S/O', ref: '', cat: '', wref: '', discount: '', au: AUTH[0], auO: '', paid: '', mode: 'Cash' }
 export default function OpdRegister({ patient, onDone, onClose }) {
   const [f, setF] = useState(blank), [fee, setFee] = useState(istFee()), [why, setWhy] = useState(''), [err, setErr] = useState(''), [busy, setBusy] = useState(false)
