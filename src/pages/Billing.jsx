@@ -8,7 +8,7 @@ const dt = d => d ? new Date(d).toLocaleDateString('en-GB', { timeZone: 'Asia/Ko
 export default function Billing({ profile }) {
   const canBill = ['Admin', 'Super Admin'].includes(profile?.role)
   const [cat, setCat] = useState([]), [pr, setPr] = useState(''), [q, setQ] = useState(''), [hits, setHits] = useState([]), [pt, setPt] = useState(null), [adms, setAdms] = useState([]), [adm, setAdm] = useState(null), [bills, setBills] = useState([]), [pays, setPays] = useState([]), [others, setOthers] = useState([])
-  const [f, setF] = useState({ disc: '', au: AUTH[0], auO: '', paid: '', mode: 'Cash', ref: '', status: STATUS[0] }), [err, setErr] = useState(''), [msg, setMsg] = useState(''), [busy, setBusy] = useState(false), [show, setShow] = useState(false), [snap, setSnap] = useState(null)
+  const [f, setF] = useState({ disc: '', au: AUTH[0], auO: '', paid: '', mode: 'Cash', ref: '', rem: '', status: STATUS[0] }), [err, setErr] = useState(''), [msg, setMsg] = useState(''), [busy, setBusy] = useState(false), [show, setShow] = useState(false), [snap, setSnap] = useState(null)
   useEffect(() => { supabase.from('catalog_items').select('name,rate').eq('kind', 'ipd_procedure').eq('active', true).then(({ data }) => setCat(data || [])) }, [])
   const nb = x => (x || '').replace(/^BEH-?/, '')
   const search = async () => {
@@ -27,7 +27,7 @@ export default function Billing({ profile }) {
   const loadBill = async a => {
     let out = { b: [], pm: [] }; const { data: b } = await supabase.from('bills').select('*').eq('admission_id', a.id).order('created_at'); setBills(b || [])
     const ids = (b || []).map(x => x.id); const { data: pm } = ids.length ? await supabase.from('payments').select('*').in('bill_id', ids).order('created_at') : { data: [] }; setPays(pm || []); out = { b: b || [], pm: pm || [] }
-    setF(x => ({ ...x, disc: '', paid: '', ref: '', status: a.discharge_status || STATUS[0] })); return out
+    setF(x => ({ ...x, disc: '', paid: '', ref: '', rem: '', status: a.discharge_status || STATUS[0] })); return out
   }
   useEffect(() => { if (adm) loadBill(adm) }, [adm?.id])
   const act = bills.filter(b => b.status === 'Active'), sub = act.reduce((s, b) => s + Number(b.subtotal), 0), disc0 = act.reduce((s, b) => s + Number(b.discount), 0), total0 = act.reduce((s, b) => s + Number(b.total), 0)
@@ -48,7 +48,7 @@ export default function Billing({ profile }) {
     if (paid !== Math.max(0, bal)) return setErr(`A full and final bill needs the exact balance to be paid: ${inr(Math.max(0, bal))}.`)
     if (paid > 0 && f.mode !== 'Cash' && !f.ref.trim()) return setErr(f.mode === 'UPI' ? 'Enter the UPI transaction / UTR number' : 'Enter the card slip number or last 4 digits')
     if (!confirm(`Finalize the bill for ${pt.name}?\nNet ${inr(net)} · Balance paid now ${inr(paid)}\nThe patient will be marked as discharged and the bill will be locked.`)) return
-    setBusy(true); const { error } = await supabase.rpc('ipd_finalize', { p_adm: adm.id, p_discount: d, p_authority: f.au === 'Other' ? f.auO : f.au, p_paid: paid, p_mode: f.mode, p_ref: f.ref, p_status: f.status }); setBusy(false); if (error) return setErr(error.message)
+    setBusy(true); const { error } = await supabase.rpc('ipd_finalize', { p_adm: adm.id, p_discount: d, p_authority: f.au === 'Other' ? f.auO : f.au, p_paid: paid, p_mode: f.mode, p_ref: f.ref, p_status: f.status, p_remarks: f.rem }); setBusy(false); if (error) return setErr(error.message)
     setMsg('Full & Final bill completed. The patient is discharged.'); const { data: a } = await supabase.from('admissions').select('*').eq('id', adm.id).single(); setAdm(a); const fresh = await loadBill(a); setSnap({ patient: pt, adm: a, bills: fresh.b, pays: fresh.pm }); setShow(true)
   }
   const data = { patient: pt, adm, bills, pays }
@@ -80,9 +80,10 @@ export default function Billing({ profile }) {
             <div className="grid grid-cols-2 gap-3"><div><label className="lbl">Payment mode</label><select className="inp" value={f.mode} onChange={e => setF({ ...f, mode: e.target.value })}><option>Cash</option><option>UPI</option><option>Card</option></select></div>
               <div><label className="lbl">Patient status</label><select className="inp" value={f.status} onChange={e => setF({ ...f, status: e.target.value })}>{STATUS.map(s => <option key={s}>{s}</option>)}</select></div></div>
             {f.mode !== 'Cash' && <div><label className="lbl">{f.mode === 'UPI' ? 'UPI Txn / UTR number *' : 'Card slip no. or last 4 digits *'}</label><input className="inp" value={f.ref} onChange={e => setF({ ...f, ref: e.target.value })} /></div>}
+            <div><label className="lbl">Remarks (optional, printed on the bill)</label><textarea rows={2} className="inp" value={f.rem} onChange={e => setF({ ...f, rem: e.target.value })} /></div>
             {err && <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{err}</p>}
             <button className="btn w-full" disabled={busy} onClick={run}><FileCheck2 size={16} />{busy ? 'Finalizing…' : 'Finalize bill & discharge'}</button>
             <button className="w-full text-xs font-semibold text-accent" onClick={() => setShow(true)}>Preview bill</button></div>
             : <p className="card p-5 text-sm text-slate-500">Only an Admin can finalize a bill.</p>}</div></>}
-    {show && pt && adm && <FinalBill d={snap || data} onClose={() => { setShow(false); setSnap(null) }} />}</div>
+    {show && pt && adm && <FinalBill d={snap || { ...data, remarks: f.rem }} onClose={() => { setShow(false); setSnap(null) }} />}</div>
 }

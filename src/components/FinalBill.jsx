@@ -37,6 +37,8 @@ export default function FinalBill({ d, onClose }) {
         <div className="space-y-1"><Row l="Procedure charges" v={inr(cat('Procedure'))} /><Row l="Investigation charges" v={inr(cat('Investigation'))} /><Row l="Other charges" v={inr(cat('Other'))} />
           <Row l="Total bill" v={inr(sub)} b /><Row l="Less: discount" v={`- ${inr(disc)}`} /><Row l="Net amount" v={inr(net)} b /><Row l="Advance already received" v={inr(advT - refT)} />{finT > 0 && <Row l="Final payment" v={inr(finT)} />}
           <Row l="Balance" v={inr(bal)} b c={bal > 0 ? 'text-red-600' : 'text-emerald-700'} /></div></div>
+      {(() => { const cat = a.category && a.category !== 'Cash' ? a.category : '', ref = a.refer_no || act.map(b => b.waiver_ref).find(Boolean) || ''; return (cat || ref) ? <div className="rounded-lg border border-slate-300 px-3 py-1.5">{cat && <>Category: <b>{cat}</b></>}{cat && ref && ' · '}{ref && <>Reference / policy / card No: <b>{ref}</b></>}</div> : null })()}
+      {(d.remarks || act.map(b => b.remarks).filter(Boolean).length > 0) && <div className="rounded-lg border border-slate-300 px-3 py-1.5">Remarks: <b>{d.remarks || [...new Set(act.map(b => b.remarks).filter(Boolean))].join(' · ')}</b></div>}
       <div className="grid grid-cols-2 gap-x-6 gap-y-1 rounded-lg bg-slate-50 p-3">
         <div>Patient status: <b>{a.discharge_status || (a.status === 'Admitted' ? 'Admitted' : '—')}</b></div><div className="text-right">Finalized by: <b>{first.finalized_by || '—'}</b></div>
         <div>Admission: <b>{dtm(a.admitted_at)}</b></div><div className="text-right">Discharge: <b>{dtm(a.discharged_at)}</b></div>
