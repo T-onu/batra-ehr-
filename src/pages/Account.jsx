@@ -36,7 +36,7 @@ export default function Account({ profile }) {
   }),
     dueT = act.filter(b => b.kind !== 'IPD' && b.total - b.paid > 0).map(b => ({ v: b.id, l: `${b.kind} due · ${nb(b.visits?.visit_no || b.bill_no)}`, amt: String(b.total - b.paid) })),
     targets = ipdT.length ? ipdT : dueT
-  const dueOk = v => !!v && !String(v).startsWith('adm:') && dueT.some(t => t.v === v) && !ipdT.length
+  const dueOk = v => !!v && !String(v).startsWith('adm:') && targets.some(t => t.v === v)
   const startRcv = () => {
     if (!targets.length) return setMsg('No admitted IPD patient or pending bill for this patient.')
     const t = (focus?.type === 'IPD' && targets.find(x => x.no === focus.no)) || targets[0]; setRcv({ target: t.v, amount: t.amt, mode: 'Cash', remarks: '', ref: '', disc: '', au: AUTH[0], auO: '' }); setErr('')
