@@ -32,11 +32,11 @@ export default function Account({ profile }) {
   const hasBill = id => bills.find(b => b.admission_id === id && b.kind === 'IPD' && b.status === 'Active')
   const nb = x => (x || '').replace(/^BEH-?/, ''), ipdT = adms.filter(a => a.status === 'Admitted').map(a => {
     const b = hasBill(a.id), due = b ? b.total - b.paid : 0, r = cat.find(c => c.name.toLowerCase() === (a.procedure || '').trim().toLowerCase())?.rate
-    return { v: b ? b.id : 'adm:' + a.id, l: `IPD Advance · ${nb(a.adm_no)} · ${a.procedure}`, amt: due > 0 ? String(due) : (r != null ? String(r) : ''), no: a.adm_no }
+    return { v: b ? b.id : 'adm:' + a.id, l: `IPD Advance · ${nb(a.adm_no)} · ${a.procedure}`, amt: due > 0 ? String(due) : (r != null ? String(r) : ''), no: a.adm_no, aid: a.id, proc: (a.procedure || '').trim(), rate: r }
   }),
     dueT = act.filter(b => b.kind !== 'IPD' && b.total - b.paid > 0).map(b => ({ v: b.id, l: `${b.kind} due · ${nb(b.visits?.visit_no || b.bill_no)}`, amt: String(b.total - b.paid) })),
     targets = ipdT.length ? ipdT : dueT
-  const dueOk = v => !!v && !String(v).startsWith('adm:') && targets.some(t => t.v === v)
+  const dueOk = v => !!v && targets.some(t => t.v === v && (!String(v).startsWith('adm:') || (t.rate != null && t.rate > 0)))
   const startRcv = () => {
     if (!targets.length) return setMsg('No admitted IPD patient or pending bill for this patient.')
     const t = (focus?.type === 'IPD' && targets.find(x => x.no === focus.no)) || targets[0]; setRcv({ target: t.v, amount: t.amt, mode: 'Cash', remarks: '', ref: '', disc: '', au: AUTH[0], auO: '' }); setErr('')
@@ -44,7 +44,7 @@ export default function Account({ profile }) {
   const submitRcv = async () => {
     setErr(''); const amt = +rcv.amount || 0, dsc = dueOk(rcv.target) ? (+rcv.disc || 0) : 0; if (!(amt > 0) && !(dsc > 0)) return setErr('Enter an amount greater than 0'); if (dsc > 0 && rcv.au === 'Other' && !rcv.auO.trim()) return setErr('Enter the full name of the discount authority'); if (amt > 0 && rcv.mode !== 'Cash' && !rcv.ref.trim()) return setErr(rcv.mode === 'UPI' ? 'Enter the UPI transaction / UTR number' : 'Enter the card slip number or last 4 digits'); setBusy(true)
     try {
-      let bill = rcv.target || null; if (bill && bill.startsWith('adm:')) { const { data, error } = await supabase.rpc('ipd_add_service', { p_adm: bill.slice(4), p_items: [] }); if (error) throw error; bill = data }
+      let bill = rcv.target || null; if (bill && bill.startsWith('adm:')) { const tg = targets.find(x => x.v === rcv.target), items = dsc > 0 && tg?.rate > 0 ? [{ d: tg.proc, q: 1, r: tg.rate, c: 'Procedure' }] : []; const { data, error } = await supabase.rpc('ipd_add_service', { p_adm: bill.slice(4), p_items: items }); if (error) throw error; bill = data }
       const { data, error } = await supabase.rpc('receive_payment', { p_patient: pt.id, p_bill: bill, p_amount: amt, p_mode: rcv.mode, p_remarks: rcv.remarks, p_ref: rcv.ref, p_discount: dsc, p_authority: rcv.au === 'Other' ? rcv.auO : rcv.au }); if (error) throw error
       setRcv(null); setMsg(data.receipt_no ? `Receipt ${data.receipt_no} · ${inr(data.amount)} received${dsc > 0 ? ` · discount ${inr(dsc)}` : ''}` : `Discount ${inr(dsc)} applied`); await load(); if (data.receipt_no) setVch(data.receipt_no)
     } catch (e) { setErr(e.message) } setBusy(false)
