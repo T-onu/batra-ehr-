@@ -20,7 +20,7 @@ export default function PatientProfile({ id, profile, onBack }) {
   }
   useEffect(() => { load() }, [id])
   const save = async () => {
-    if (!f.name?.trim()) return setMsg('Name is required'); const { error } = await supabase.from('patients').update({ name: f.name.trim(), age: f.age || null, sex: f.sex, phone: f.phone, address: f.address }).eq('id', id)
+    if (!f.name?.trim()) return setMsg('Name is required'); const { error } = await supabase.from('patients').update({ name: f.name.trim(), age: f.age || null, sex: f.sex, phone: f.phone, address: f.address, relation: f.relation || 'S/O', father_name: (f.father_name || '').trim() || null }).eq('id', id)
     if (error) return setMsg(error.message); setMsg('Saved ✓'); setEd(false); load()
   }
   const cancel = async b => {
@@ -35,9 +35,11 @@ export default function PatientProfile({ id, profile, onBack }) {
   return <div className="space-y-4"><button onClick={onBack} className="flex items-center gap-1 text-sm font-semibold text-accent"><ArrowLeft size={16} />Patients</button>
     <div className="card p-5">{ed ? <div className="grid gap-3 sm:grid-cols-2">{[['name', 'Name'], ['phone', 'Phone'], ['age', 'Age'], ['address', 'Address']].map(([k, l]) => <div key={k}><label className="lbl">{l}</label><input className="inp" value={f[k] || ''} onChange={e => setF({ ...f, [k]: e.target.value })} /></div>)}
       <div><label className="lbl">Sex</label><select className="inp" value={f.sex || ''} onChange={e => setF({ ...f, sex: e.target.value })}><option>Male</option><option>Female</option><option>Other</option></select></div>
+      <div><label className="lbl">Relation</label><select className="inp" value={f.relation || 'S/O'} onChange={e => setF({ ...f, relation: e.target.value })}>{['S/O', 'D/O', 'W/O', 'C/O'].map(x => <option key={x}>{x}</option>)}</select></div>
+      <div><label className="lbl">Father / husband / guardian name</label><input className="inp" value={f.father_name || ''} onChange={e => setF({ ...f, father_name: e.target.value })} /></div>
       <div className="flex items-end gap-2"><button className="btn" onClick={save}><Save size={16} />Save</button><button className="text-sm text-slate-400" onClick={() => { setEd(false); setF(p) }}>Cancel</button></div></div>
       : <div className="flex items-start gap-4"><div className="grid h-14 w-14 place-items-center rounded-full bg-navy text-xl font-extrabold text-white">{p.name[0]}</div>
-        <div className="flex-1"><div className="text-xl font-extrabold text-navy">{p.name}</div><div className="text-xs text-slate-500">{p.uhid}{p.legacy_uhid && ` (old ${p.legacy_uhid})`} · {p.age ? p.age + 'y · ' : ''}{p.sex} · {p.phone || 'no phone'}</div><div className="text-xs text-slate-400">{p.address}</div></div>
+        <div className="flex-1"><div className="text-xl font-extrabold text-navy">{p.name}</div><div className="text-xs text-slate-500">{p.uhid}{p.legacy_uhid && ` (old ${p.legacy_uhid})`} · {p.age ? p.age + 'y · ' : ''}{p.sex} · {p.phone || 'no phone'}</div>{p.father_name && <div className="text-xs text-slate-500">{p.relation || 'S/O'}: <b>{p.father_name}</b></div>}<div className="text-xs text-slate-400">{p.address}</div></div>
         <div className="flex gap-2">{canReg && <button onClick={() => setOpd(true)} className="btn !py-2 !text-xs">New OPD visit</button>}<button onClick={() => setEd(true)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600"><Pencil size={12} className="mr-1 inline" />Edit</button></div></div>}
       {msg && <p className="mt-2 text-xs text-emerald-600">{msg}</p>}</div>
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4"><S l="Visits" v={d.visits.length} /><S l="Admissions" v={d.adm.length} /><S l="Total billed" v={inr(billed)} /><S l="Due" v={inr(due)} c={due > 0 ? 'text-red-600' : 'text-emerald-600'} /></div>
