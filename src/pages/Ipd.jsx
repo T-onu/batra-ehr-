@@ -3,7 +3,7 @@ import { Search, X, Plus } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import ProcedurePick from '../components/ProcedurePick'
 const PROC = ['Phaco with foldable IOL', 'SICS', 'Pterygium surgery', 'Trabeculectomy', 'Vitrectomy', 'DCR', 'Squint surgery', 'Corneal transplant', 'Intravitreal injection']
-const CATS = ['Cash', 'Insurance', 'Government scheme', 'Other']
+const CATS = ['Cash', 'ECHS', 'Insurance', 'Government scheme', 'Other']
 const F0 = { procedure: '', side: 'OS', surgeon: 'Dr Akhil Batra', bed_id: '', preop: 'Fit for surgery', category: 'Cash', refer_no: '', planned_date: '', advance: '', mode: 'now', addCharge: true }
 const days = d => Math.max(1, Math.ceil((Date.now() - new Date(d)) / 864e5))
 const DSTATUS = ['Discharged to Home', 'Referred to another hospital', 'LAMA (Left against medical advice)', 'DAMA (Discharged on request)', 'Absconded', 'Expired']
