@@ -13,7 +13,7 @@ export default function FinalBill({ d, onClose }) {
   const adv = live.filter(x => !x.is_final && x.amount > 0), fin = live.filter(x => x.is_final), refunds = live.filter(x => !x.is_final && x.amount < 0)
   const advT = adv.reduce((s, x) => s + Number(x.amount), 0), finT = fin.reduce((s, x) => s + Number(x.amount), 0), refT = refunds.reduce((s, x) => s - Number(x.amount), 0), bal = net - (advT + finT - refT)
   const cat = c => items.filter(x => (x.c || 'Other') === c).reduce((s, x) => s + x.q * x.r, 0)
-  const fr = fin[0] || [...adv].reverse().find(x => x.receipt_no), finalised = !!first.finalized_at
+  const rnos = [...new Set([...adv, ...fin].map(x => x.receipt_no).filter(Boolean))], finalised = !!first.finalized_at
   return <div className="fixed inset-0 z-40 overflow-auto bg-slate-900/50 p-4 backdrop-blur-sm"><div className="mx-auto max-w-3xl">
     <div className="no-print mb-3 flex justify-end gap-2"><button className="btn" onClick={() => window.print()}><Printer size={16} />Print / PDF</button><button className="btn !bg-white !text-navy" onClick={onClose}><X size={16} />Close</button></div>
     <div className="print-area card space-y-3 p-6 text-[12px] sm:p-8">
@@ -21,7 +21,7 @@ export default function FinalBill({ d, onClose }) {
         <div className="flex-1"><div className="text-2xl font-extrabold text-navy">Batra Eye Hospital</div><div className="text-[11px] text-slate-500">Mukerian, Bhangala Chungi · Phone: 8295954631 / 8427808384 · akhilbatra073@gmail.com</div></div></div>
       <div className="text-center text-sm font-extrabold tracking-wide text-navy">IPD CONSOLIDATED FULL &amp; FINAL BILL</div>
       <div className="grid grid-cols-2 gap-x-6 gap-y-1 rounded-lg border border-slate-300 p-3">
-        <div>Receipt No: <b>{fr?.receipt_no || '—'}</b></div><div className="text-right">UHID: <b>{p.uhid}</b></div>
+        <div>{rnos.length ? <>Receipt No: <b>{rnos.join(', ')}</b></> : <>Bill No: <b>{first.bill_no || '—'}</b> <span className="text-[10px] text-slate-500">(no payment received — no receipt issued)</span></>}</div><div className="text-right">UHID: <b>{p.uhid}</b></div>
         <div>Patient: <b>{p.name}</b></div><div className="text-right">IPD No: <b>{(a.adm_no || '').replace(/^BEH-?/, '')}</b></div>
         <div>{p.relation || 'S/O'}: <b>{p.father_name || '—'}</b></div><div className="text-right">Age / Sex: <b>{p.age ? p.age + ' Y' : '—'} / {p.sex}</b></div>
         <div>Mobile: <b>{p.phone || '—'}</b></div><div className="text-right">Procedure: <b>{a.procedure}{a.side ? ` (${a.side})` : ''}</b></div>
